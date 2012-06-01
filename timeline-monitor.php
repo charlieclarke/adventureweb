@@ -4,6 +4,30 @@
 <title>call monitoring page</title>
 </head>
 <body>
+<?php
+$username = "admin";
+$password  = "warsaw";
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+} else {
+	$login=0;
+	if ($_SERVER['PHP_AUTH_USER'] == $username) {
+		if ($_SERVER['PHP_AUTH_PW'] == $password) {
+			#all is good
+			$login=1;
+		}
+	}
+	if ($login == 0) {
+		header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+	}
+}
+?>
 <?php 
     header("content-type: text/html");
 
@@ -144,7 +168,7 @@
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
-	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task.</div><table>");
+	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div><table>");
 	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Destination Number</th><th>MP3</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	

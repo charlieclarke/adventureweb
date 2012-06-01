@@ -10,6 +10,7 @@
 
         $local_secret = $ini_array['sharedSecret'];
         $db_location = $ini_array['databasepath'];
+        $mp3Server = $ini_array['mp3Server'];
 
 	#if ($secret != $local_secret) {
 #		header("HTTP/1.0 401 Unauthorized");
@@ -84,7 +85,7 @@
 ?>
 <Response>
 <Pause length="2"/>
-<Play>http://ec2-176-34-195-123.eu-west-1.compute.amazonaws.com/mp3/<?php echo($mp3name); ?></Play>
+<Play><?php echo($mp3server); ?><?php echo($mp3name); ?></Play>
 </Response>
 
 

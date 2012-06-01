@@ -85,7 +85,7 @@
 ?>
 <Response>
 <Pause length="2"/>
-<Play><?php echo($mp3server); ?><?php echo($mp3name); ?></Play>
+<Play><?php echo($mp3Server); ?><?php echo($mp3name); ?></Play>
 </Response>
 
 

@@ -2,10 +2,14 @@
     header("content-type: text/xml");
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 
-	$threadID = $_GET["threadID"];
+	$threadID = intval($_GET["threadID"]);
 	$secret = $_GET["secret"];
 
-	$local_secret = chop(file_get_contents ("/var/cache/timeline/sharedsecret"));
+
+	 $ini_array = parse_ini_file("config.local");
+
+        $local_secret = $ini_array['sharedSecret'];
+        $db_location = $ini_array['databasepath'];
 
 	#if ($secret != $local_secret) {
 #		header("HTTP/1.0 401 Unauthorized");
@@ -15,7 +19,7 @@
 	echo("<!-- playing mp3 associated with threadID " . $threadID . "-->");	
 	$mp3name = "blank.mp3";
 
-	$db = new PDO('sqlite:/var/cache/timeline/timeline.db');
+	$db = new PDO('sqlite:'.$db_location);
 
 	$sql = "SELECT mp3Name FROM Thread WHERE id = ?";
 	$q = $db->prepare($sql);
@@ -41,7 +45,7 @@
 
         // fetch
         while($r = $q->fetch()){
-          $childID = $r['ChildThreadID'];
+          $childID = intval($r['ChildThreadID']);
         }
 
 	if ($childID > 0) {
@@ -59,18 +63,15 @@
 
 		// fetch
 		while($r = $q->fetch()){
-		  $freq = $r['FrequencyMinutes'];
+		  $freq = intval($r['FrequencyMinutes']);
 		}
 		echo("<!-- child freq is " . $freq . "-->");
 		#now we insert the new task to the timeline at now + freq minutes.
 
 		 $sql = "INSERT INTO TimeLine select NULL," . $childID . ",datetime('now','+".$freq." minutes'),0,NULL,'inserted on call',NULL";
                
-                #$qq = $db->prepare($sql);
-
 
                 echo("<!-- sql is " . $sql . "-->");
-                #$qq->execute();
 		$count = $db->exec($sql);
 		echo("<!-- sql done " . $count . "rows -->");
 	}

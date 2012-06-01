@@ -1,0 +1,62 @@
+body {
+	background: #eeeeee;
+	font-family: Verdana, serif;
+	font-size: smaller;
+}
+.tableTitle {
+	font-family: Verdana;
+	font-size: small;
+	font-weight:bold;
+}
+.tableDescription {
+	font-family: Verdana;
+	font-size: small;
+	font-weight:normal;
+	width:500px;
+}
+
+table, th, td
+{
+
+	border: 0px solid black;
+	font-family: Verdana, serif;
+	font-size: smaller;
+}
+
+th {
+
+	background-color: #CC9999; color: black;
+}
+
+tr.d0 td {
+	background-color: #CC9999; color: black;
+}
+tr.d1 td {
+	background-color: #9999CC; color: black;
+}
+
+form {
+
+	font-family: Verdana, serif;
+	font-size: smaller;
+	border-radius: 10px;
+	padding:1px;
+}
+
+
+#container    {
+	width: 1000px;
+}
+#container:after {
+    content:'';
+    display:block;
+    clear:both;
+ }
+#timelineDiv    {
+    float: left;
+	width: 600px;
+}
+#numberMgmt    {
+    float: right;
+	width: 400px;
+}

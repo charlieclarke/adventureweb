@@ -5,8 +5,14 @@
 	$threadID = intval($_GET["threadID"]);
 	$secret = $_GET["secret"];
 
+	$machinename =  gethostname();
+	if (preg_match("local",$machinename)) {
+		$configfile = "/var/tmp/config.local";
+	} else {
+		$configfile = "/var/cache/timeline/config.local";
+	}
 
-	 $ini_array = parse_ini_file("config.local");
+	 $ini_array = parse_ini_file($configfile);
 
         $local_secret = $ini_array['sharedSecret'];
         $db_location = $ini_array['databasepath'];
@@ -46,8 +52,14 @@
 
         // fetch
         while($r = $q->fetch()){
-          $childID = intval($r['ChildThreadID']);
+          $childtext = $r['ChildThreadID'];
         }
+	echo("<!-- found childtext " . $childtext . "-->");
+
+	$childIDs = explode(',',$childtext);
+	foreach($childIDs as $childID) {
+	
+	$childID = intval($childID);
 
 	if ($childID > 0) {
 		echo("<!-- found a child " . $childID . "-->");
@@ -75,6 +87,7 @@
                 echo("<!-- sql is " . $sql . "-->");
 		$count = $db->exec($sql);
 		echo("<!-- sql done " . $count . "rows -->");
+	}
 	}
 
 

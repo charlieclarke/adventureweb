@@ -5,14 +5,17 @@
 	$threadID = intval($_GET["threadID"]);
 	$secret = $_GET["secret"];
 
-	$machinename =  gethostname();
-	if (preg_match("local",$machinename)) {
-		$configfile = "/var/tmp/config.local";
-	} else {
-		$configfile = "/var/cache/timeline/config.local";
-	}
 
-	 $ini_array = parse_ini_file($configfile);
+	$machinename =  gethostname();
+
+	if (preg_match("/local/i",$machinename)) {
+                $configfile = "/var/tmp/config.local";
+        } else {
+                $configfile = "/var/cache/timeline/config.local";
+        }
+	echo "<!-- config = " . $configfile . "-->";
+
+         $ini_array = parse_ini_file($configfile);
 
         $local_secret = $ini_array['sharedSecret'];
         $db_location = $ini_array['databasepath'];

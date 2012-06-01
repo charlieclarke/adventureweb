@@ -6,7 +6,7 @@
 <body>
 <?php
 $machinename =  gethostname();
-        if (preg_match("local",$machinename)) {
+        if (preg_match("/local/i",$machinename)) {
                 $configfile = "/var/tmp/config.local";
         } else {
                 $configfile = "/var/cache/timeline/config.local";

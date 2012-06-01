@@ -89,11 +89,22 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newThreadNumber = $_GET["NewThreadDestNumber"];
 		$newThreadFrequency = $_GET["NewFrequency"];
 		$newThreadMp3 = $_GET["NewMp3Name"];
-		$newChildThreadID = intval($_GET["NewChildThreadID"]);
+		$newChildThreadID1 = intval($_GET["NewChildThreadID1"]);
+		$newChildThreadID2 = intval($_GET["NewChildThreadID2"]);
 		$newStartHour = intval($_GET["NewStartTimeHours"]);
 		$newStopHour = intval($_GET["NewStopTimeHours"]);
 		$newStartMinute = intval($_GET["NewStartTimeMinutes"]);
 		$newStopMinute = intval($_GET["NewStopTimeMinutes"]);
+
+		$newChildThreadID = 0;
+
+		if ($newChildThreadID1 > 0) {
+			$newChildThreadID = $newChildThreadID1;
+			if ($newChildThreadID2 > 0) {
+				$newChildThreadID = $newChildThreadID . "," . $newChildThreadID2;
+			}
+		}
+
 		 $sql = "DELETE FROM Thread where id = ?"; 
 
 		$st = $db->prepare($sql);
@@ -213,7 +224,19 @@ echo "<br><br>";
 	echo "</td>";
 	echo "<td><input type='text' name='NewMp3Name' value='mp3name / message'/></td>";
 	echo "<td><input type='text' name='NewFrequency' value='0'/></td>";
-	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID'>";
+	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID1'>";
+
+		echo "<option value='0'>0 (no child thread)</option>";
+		$result = $db->query("SELECT * from Thread");
+		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+		foreach($rowarray as $row) {
+
+			echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+		}
+
+	echo "</select>";
+	echo "<br>";
+	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID2'>";
 
 		echo "<option value='0'>0 (no child thread)</option>";
 		$result = $db->query("SELECT * from Thread");

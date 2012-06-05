@@ -297,7 +297,10 @@ echo "<br><br>";
         }
         echo("</table>");
 	echo("</div>"); #end of the timeline div
-	echo("<div id='callTrack' >");
+	echo("<div id='callTrak' >");
+
+	echo("<div class='tableTitle'>History</div><br><div class='tableDescription' width=250px>The History shows all inbound and outbound calls</div>");
+	echo "<br>";
 
 	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number, Thread.mp3Name, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
 

@@ -181,13 +181,16 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	#render page
 
+	#top menu bar
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a></div>");
+	echo("<br><br>");
 
-	$result = $db->query('SELECT * FROM Thread join Action where Thread.ActionType = Action.ActionTypeID');
+	$result = $db->query('SELECT * FROM Thread,Action, Groups where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID');
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
 	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div><table>");
-	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Destination Number</th><th>MP3</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
+	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
 echo "<br><br>";
@@ -197,7 +200,7 @@ echo "<br><br>";
 		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
 		
 		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td>$row[id]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[DestNumber]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a></td>";
+		echo "<td>$row[id]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a></td>";
 		echo "</tr>";
 		$maxID = $row[id];
 	}
@@ -220,11 +223,11 @@ echo "<br><br>";
 	#echo "<td><input type='text' name='NewThreadDestNumber' value='+44 xxxx xxxx xxxx '/></td>";
 	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewThreadDestNumber'>";
 
-		$result = $db->query("SELECT * from Number");
+		$result = $db->query("SELECT * from Groups");
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
 
-			echo "<option value='$row[Number]'>$row[Number] ($row[NumberDescription])</option>";
+			echo "<option value='$row[GroupID]'>$row[GroupName] </option>";
 		}
 
 	echo "</select>";
@@ -296,33 +299,6 @@ echo "<br><br>";
 	echo("</div>"); #end of the timeline div
 	echo("<div id='numberMgmt' >");
 	
-	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
-
-	$result = $db->query('select * from Number');
-
-	echo("<form action='" . $this_page . "' method='get'>");
-
-	echo "<input type='hidden' name='CRUD' value='CREATENUMBER'/>";
-        echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
-
-	echo("<table>");
-	echo("<tr><th>Number</th><th>Description</th><th></th></tr>");
-	
-	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-        foreach($rowarray as $row)
-        {
-		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
-		
-		echo "<tr class='" .$rowstyle . "'>";
-                echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td><a href='$this_url?secret=$secret_local&CRUD=DELETENUMBER&NumberID=$row[NumberID]'>delete</a></td>";
-                echo "</tr>";
-        }
-	echo "<tr class='" .$rowstyle . "'>";
-        echo "<td><input type='text' size=20 name='NewNumber' value='+44 xxxx xxx xxx'/></td>";
-        echo "<td><input type='text' name='NewNumberDescription' value='NumberDescription'/></td>";
-	echo "<td><input type='submit' name='Add' />";
-	echo "</table>";
-	echo "</form>";
 
 
 	echo("</div>"); #end of the number mgmt div

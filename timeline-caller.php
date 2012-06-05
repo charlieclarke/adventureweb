@@ -4,6 +4,7 @@
 
 	$threadID = intval($_GET["threadID"]);
 	$secret = $_GET["secret"];
+	$callTrackID = intval($_GET["CallTrackID"]);
 
 
 	$machinename =  gethostname();
@@ -92,6 +93,14 @@
 		echo("<!-- sql done " . $count . "rows -->");
 	}
 	}
+
+	#update call track
+	$sql = "update CallTrack set StatusText='call answered', TrackTime=DATETIME('now') where TrackID=$callTrackID";
+
+
+                echo("<!-- sql is " . $sql . "-->");
+                $count = $db->exec($sql);
+                echo("<!-- sql done " . $count . "rows -->");
 
 
 	$db = null;

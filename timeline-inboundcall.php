@@ -27,7 +27,8 @@
 
         $db = new PDO('sqlite:'.$db_location);
 
-
+	$inboundMp3Action = 6;
+	$inboundTextAction = 5;
 	#see if we can find the number
 
         $sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ?";
@@ -87,12 +88,101 @@
           $defaultThreadID = $r['ThreadID'];
         }
 
+	#see if there are any inbound threads associated with this number
 
-	#insert into CallTrack
+	$sql = "SELECT Thread.id, Thread.mp3Name, Thread.ActionType,Thread.ChildThreadID from Thread, Groups, Number, GroupNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.Number = ? and Thread.ActionType in (?,?) and Thread.id not in (?)  order by Thread.FrequencyMinutes";
 
-	$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered','')";
+	echo("<!--exec sql " . $sql . "-->");
 	$q = $db->prepare($sql);
-        $q->execute(array($defaultThreadID, $numberID));
+        $q->execute(array($inboundnumber, $inboundMp3Action, $inboundTextAction,$defaultThreadID));
+
+        $q->setFetchMode(PDO::FETCH_BOTH);
+	
+	$todoxml = "";
+        while($r = $q->fetch()){
+		$threadID = $r['id'];
+		echo("<!-- got threadID of $r[id] -->"); 
+		$defaultThreadID = 0;
+
+		$actionTypeID = $r['ActionType'];
+		$mp3Name = $r['mp3Name'];
+		$childThread=$r['ChildThreadID'];
+
+		if ($actionTypeID == $inboundMp3Action) {
+			#play mp3
+
+			$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+
+		} else if ($actionTypeID == $inboundTextAction) {
+
+			$saytext = $mp3Name;
+
+			$saytext = str_replace("[InboundName]",$numberDescription, $saytext);
+			$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
+
+			#play text
+		}
+
+		#deal with children
+
+		#insert the thread into calltrack...
+		$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered','')";
+		$qq = $db->prepare($sql);
+		$qq->execute(array($threadID, $numberID));
+
+
+	} 
+
+	if ($defaultThreadID >0) {
+		#do default behaviour
+		$sql = "SELECT Thread.id, Thread.mp3Name, Thread.ActionType,Thread.ChildThreadID from Thread where Thread.id  in (?)  order by Thread.FrequencyMinutes";
+
+		echo("<!--exec sql " . $sql . "-->");
+		$q = $db->prepare($sql);
+		$q->execute(array($defaultThreadID));
+
+		$q->setFetchMode(PDO::FETCH_BOTH);
+
+		$todoxml = "";
+		while($r = $q->fetch()){
+			$threadID = $r['id'];
+			echo("<!-- got threadID of $r[id] -->"); 
+			$defaultThreadID = 0;
+
+			$actionTypeID = $r['ActionType'];
+			$mp3Name = $r['mp3Name'];
+			$childThread=$r['ChildThreadID'];
+
+			if ($actionTypeID == $inboundMp3Action) {
+				#play mp3
+
+				$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+
+			} else if ($actionTypeID == $inboundTextAction) {
+
+				$saytext = $mp3Name;
+
+				$saytext = str_replace("[InboundName]",$numberDescription, $saytext);
+				$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
+
+				#play text
+			}
+
+			#deal with children
+
+			#insert the thread into calltrack...
+			$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered default behaviour','')";
+			$qq = $db->prepare($sql);
+			$qq->execute(array($threadID, $numberID));
+
+
+		}
+
+	}
+
+
+
+
 
 
 
@@ -100,7 +190,7 @@
     // now greet the caller
 ?>
 <Response>
-    <Say voice="woman">Hello <?php echo $numberDescription ?>.</Say>
+    <?php echo $todoxml ?>
 </Response>
 
 

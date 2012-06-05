@@ -297,7 +297,27 @@ echo "<br><br>";
         }
         echo("</table>");
 	echo("</div>"); #end of the timeline div
-	echo("<div id='numberMgmt' >");
+	echo("<div id='callTrack' >");
+
+	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number, Thread.mp3Name, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
+
+
+        echo("<table>");
+        echo("<tr><th> </th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Status</th></tr>");
+        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+	$rownum=1;
+        foreach($rowarray as $row)
+        {
+                $rowstyle = ($rownum++ % 2)==0?"d0":"d1";
+                $inout = ($row[IsOutbound]!=0)?"OUTBOUND":"INBOUND";
+
+                echo "<tr class='" .$rowstyle . "'>";
+                echo "<td>$inout</td><td>$row[TrackTime]</td><td>$row[ThreadDescription]</td><td>$row[Number]</td><td>$row[mp3Name]</td><td> $row[StatusText]</td>";
+                echo "</tr>";
+        }
+        echo("</table>");
+
 	
 
 

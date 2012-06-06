@@ -67,6 +67,17 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	#perform actions etc.
+	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREAD') {
+
+                $sql = "update DefaultInboundThread set ThreadID = ?";
+
+                $st = $db->prepare($sql);
+                $st->execute(array($threadID));
+
+        }
+
+
+
 	if ($crudAction == 'CREATENUMBER') {
 		$newNumber = $_GET["NewNumber"];
 		$newNumberDescription = $_GET["NewNumberDescription"];
@@ -246,6 +257,29 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	echo("</form>");
+
+	#default inbound thread
+	echo("<form>");
+	echo("Set the Default Inbound Thread - which is the thread which runs if an unknown or unsetup number calls:");
+	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREAD' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread)");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
+                }
+                $result = $db->query("SELECT * from Thread");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+
+        echo "</select><input type='submit' value='set'>";
+
+	echo "</form>";
+	
 
 	echo "<form action='" . $this_page . "' method='get'><table>";
 

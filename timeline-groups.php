@@ -190,7 +190,33 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	#render
 
 	 #top menu bar
-        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a></div>");
+#get last heartbeat from db
+
+
+        $result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo FROM HeartBeat where HeartBeatName='LastTimeLine'");
+
+        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+        $lastHeartBeat = 'never';
+        $lastHeartBeatAgo = -100;
+        foreach($rowarray as $row)
+        {
+
+                $lastHeartBeat = $row['HeartBeatTime'];
+                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
+        }
+
+        if ($lastHeartBeatAgo < 2) {
+                $heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
+        } else {
+                $heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
+        }
+
+        #render page
+
+        #top menu bar
+        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>|$heartBeatText</div>");
+
         echo("<br><br>");
 
 

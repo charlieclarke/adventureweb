@@ -163,7 +163,22 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		}
 	}
-			
+
+	if ($triggerAction == 'INSERTTIME') {
+		$triggerDate= $_GET["INSERTTIME"];
+
+                if ($threadID > 0) {
+                        #we have a valid trigger to insert
+
+                        $sql = "INSERT INTO TimeLine select NULL," . $threadID . ",'$triggerDate',0,NULL,'timetriggered from monitoring page',NULL";
+
+                        echo("<!-- sql is " . $sql . "-->");
+                        $count = $db->exec($sql);
+                        echo("<!-- sql done " . $count . "rows -->");
+
+
+                }
+        }			
 	if ($triggerAction == 'REMOVE') {
 		if ($threadID > 0) {
 			#we have a valid trigger to insert
@@ -177,19 +192,64 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		}
 	}
+
+	#get last heartbeat from db
+
 			
+	$result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo, DATETIME('now') as CurrentDBTime FROM HeartBeat where HeartBeatName='LastTimeLine'");
+
+        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+	$lastHeartBeat = 'never';
+	$lastHeartBeatAgo = -100;
+	$currentDBTime = '';
+        foreach($rowarray as $row)
+        {
+
+                $lastHeartBeat = $row['HeartBeatTime'];
+                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
+                $currentDBTime = $row['CurrentDBTime'];
+	} 
+
+	if ($lastHeartBeatAgo < 2) {
+		$heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
+	} else {
+		$heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
+	}
 
 	#render page
 
 	#top menu bar
-	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a></div>");
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>|$heartBeatText</div>");
 	echo("<br><br>");
 
 	$result = $db->query('SELECT * FROM Thread,Action, Groups where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID');
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
-	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div><table>");
+	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div>");
+
+	echo("<br><br>");
+	echo("Insert Thread at a specific Time onto TimeLine: Time in GMT to kick off insert. Format is [YYYY-MM-DD hh:mm:ss]");
+	echo("<input name='INSERTTIME' size=23 value='$currentDBTime'>");
+
+	echo "<input name='TRIGGER' value='INSERTTIME' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+                $result = $db->query("SELECT * from Thread");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+
+        echo "</select><input type='submit' value='trigger at time'>";
+
+
+
+	echo("</form>");
+
+	echo "<form action='" . $this_page . "' method='get'><table>";
+
 	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
@@ -280,6 +340,7 @@ echo "<br><br>";
 
 
 
+	
 
 
         echo("<table>");

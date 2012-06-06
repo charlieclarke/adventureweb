@@ -223,7 +223,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>|$heartBeatText</div>");
 	echo("<br><br>");
 
-	$result = $db->query('SELECT * FROM Thread,Action, Groups where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID');
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
@@ -250,6 +249,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo "<form action='" . $this_page . "' method='get'><table>";
 
+	$result = $db->query('SELECT * FROM Thread,Action, Groups where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID');
 	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	

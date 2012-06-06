@@ -106,7 +106,7 @@
 
 		$actionTypeID = $r['ActionType'];
 		$mp3Name = $r['mp3Name'];
-		$childThread=$r['ChildThreadID'];
+		$childtext=$r['ChildThreadID'];
 
 		if ($actionTypeID == $inboundMp3Action) {
 			#play mp3
@@ -124,13 +124,43 @@
 		}
 
 		#deal with children
+		$childIDs = explode(',',$childtext);
+		foreach($childIDs as $childID) {
+
+			$childID = intval($childID);
+
+			if ($childID > 0) {
+				echo("<!-- found a child " . $childID . "-->");
+
+				$freq=-1;
+
+				$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
+				$q = $db->prepare($sql);
+				$q->execute(array($childID));
+
+				$q->setFetchMode(PDO::FETCH_BOTH);
+
+				// fetch
+				while($r = $q->fetch()){
+				  $freq = intval($r['FrequencyMinutes']);
+				}
+				echo("<!-- child freq is " . $freq . "-->");
+				#now we insert the new task to the timeline at now + freq minutes.
+#id INTEGER PRIMARY KEY, ThreadId INTEGER, ActivityTime DATETIME, Completed INTEGER, CompletedTime DATETIME, Description TEXT, Notes TEXT, AdditionalNumberID INTEGER
+
+				 $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $childID ,datetime('now','+$freq minutes'),0,NULL,'inserted on call',NULL,$numberID)";
+
+
+				echo("<!-- sql is " . $sql . "-->");
+				$count = $db->exec($sql);
+				echo("<!-- sql done " . $count . "rows -->");
+			}
+		}
 
 		#insert the thread into calltrack...
 		$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered','')";
 		$qq = $db->prepare($sql);
 		$qq->execute(array($threadID, $numberID));
-
-
 	} 
 
 	if ($defaultThreadID >0) {
@@ -151,7 +181,7 @@
 
 			$actionTypeID = $r['ActionType'];
 			$mp3Name = $r['mp3Name'];
-			$childThread=$r['ChildThreadID'];
+			$childtext=$r['ChildThreadID'];
 
 			if ($actionTypeID == $inboundMp3Action) {
 				#play mp3
@@ -169,6 +199,40 @@
 			}
 
 			#deal with children
+			#deal with children
+			$childIDs = explode(',',$childtext);
+			foreach($childIDs as $childID) {
+
+				$childID = intval($childID);
+
+				if ($childID > 0) {
+					echo("<!-- found a child " . $childID . "-->");
+
+					$freq=-1;
+
+					$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
+					$q = $db->prepare($sql);
+					$q->execute(array($childID));
+
+					$q->setFetchMode(PDO::FETCH_BOTH);
+
+					// fetch
+					while($r = $q->fetch()){
+					  $freq = intval($r['FrequencyMinutes']);
+					}
+					echo("<!-- child freq is " . $freq . "-->");
+					#now we insert the new task to the timeline at now + freq minutes.
+	#id INTEGER PRIMARY KEY, ThreadId INTEGER, ActivityTime DATETIME, Completed INTEGER, CompletedTime DATETIME, Description TEXT, Notes TEXT, AdditionalNumberID INTEGER
+
+					 $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $childID ,datetime('now','+$freq minutes'),0,NULL,'inserted on call',NULL,$numberID)";
+
+
+					echo("<!-- sql is " . $sql . "-->");
+					$count = $db->exec($sql);
+					echo("<!-- sql done " . $count . "rows -->");
+				}
+			}
+
 
 			#insert the thread into calltrack...
 			$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered default behaviour','')";

@@ -53,6 +53,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$local_secret = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
+	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-monitor.php";
 	
@@ -165,7 +166,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		if ($threadID > 0) {
 			#we have a valid trigger to insert
 
-			$sql = "INSERT INTO TimeLine select NULL," . $threadID . ",datetime('now'),0,NULL,'triggerd from monitor page',NULL";
+			$sql = "INSERT INTO TimeLine select NULL," . $threadID . ",datetime('now'),0,NULL,'triggerd from monitor page',NULL,0";
 
 			echo("<!-- sql is " . $sql . "-->");
 			$count = $db->exec($sql);
@@ -231,7 +232,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	#render page
 
 	#top menu bar
-	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>|$heartBeatText</div>");
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
 	echo("<br><br>");
 
 
@@ -381,9 +382,10 @@ echo "<br><br>";
         echo("<tr><th>ID</th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Completed?</th><th>Comment</th></tr>");
         $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
         
+	$rownum=0;
         foreach($rowarray as $row)
         {
-		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
+		$rowstyle = (++$rownum % 2)==0?"d0":"d1";
 		
 		echo "<tr class='" .$rowstyle . "'>";
 		$completed=($row[Completed]==1)?'Yes (' . $row[CompletedTime] . ")":'No';

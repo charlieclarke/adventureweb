@@ -47,6 +47,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$local_secret = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
+	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-groups.php";
 	
@@ -110,10 +111,13 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 		$numberID = intval($_GET["NumberID"]);
-		 $sql = "DELETE FROM Number where NumberID = ?"; 
-
+		 $sql = "DELETE FROM Number where NumberID = ? and NumberID > 0"; 
 		$st = $db->prepare($sql);
 		$st->execute(array($numberID));
+
+		$sql = "DELETE FROM GroupNumber where NumberID = ?";
+                $st = $db->prepare($sql);
+                $st->execute(array($numberID));
 	
 
 
@@ -157,8 +161,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
                 $groupID = intval($_GET["GroupID"]);
-                 $sql = "DELETE FROM Groups where GroupID = ?";
+                 $sql = "DELETE FROM Groups where GroupID = ? and GroupID > 0";
+                $st = $db->prepare($sql);
+                $st->execute(array($groupID));
 
+		$sql = "DELETE FROM GroupNumber where GNGroupID = ?";
                 $st = $db->prepare($sql);
                 $st->execute(array($groupID));
 
@@ -215,14 +222,14 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         #render page
 
         #top menu bar
-        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>|$heartBeatText</div>");
+        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;$instance_name&nbsp;|&nbsp;$heartBeatText</div>");
 
         echo("<br><br>");
 
 
 	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
 
-	$result = $db->query('select * from Number');
+	$result = $db->query('select * from Number where NumberID > 0');
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
@@ -279,7 +286,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("<div class='tableTitle'>Group Management</div><br><div class='tableDescription' width=250px>Here we can manage groups.</div><br>");
 
-	$result = $db->query('select * from Groups');
+	$result = $db->query('select * from Groups where GroupID > 0');
 
 
 
@@ -333,7 +340,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 	echo("<div class='tableTitle'>Group Membership</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
 
-        $groupresult = $db->query('select * from Groups');
+        $groupresult = $db->query('select * from Groups where GroupID > 0' );
 
 
         echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
@@ -352,7 +359,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 		echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='ADDNUMBERTOGROUP'>";
 
-                $numberresult = $db->query("SELECT * from Number where NumberID not in (select GNNumberID from GroupNumber where GNGroupID = " . $groupID . ")");
+                $numberresult = $db->query("SELECT * from Number where NumberID not in (select GNNumberID from GroupNumber where GNGroupID = " . $groupID . ") and NumberID > 0");
                 $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
                 foreach($numberarray as $numberrow) {
 

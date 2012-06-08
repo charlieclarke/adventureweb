@@ -53,6 +53,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$local_secret = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
+	$mp3_url = $ini_array['mp3Server'];
 	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-monitor.php";
@@ -239,6 +240,20 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo("<form action='" . $this_page . "' method='get'>");
 
 	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div>");
+
+
+	echo("<br><br>");
+	 echo("<div class='tableTitle'>List of mp3s</div><br>");
+
+
+
+	$dirlist = file_get_contents($mp3_url);
+
+	preg_match_all("(\"\w+\.mp3\")", $dirlist, $out, PREG_PATTERN_ORDER); 
+	foreach($out[0] as $mp3) {
+		echo($mp3 . ", ");
+
+	}
 
 	echo("<br><br>");
 	echo("Insert Thread at a specific Time onto TimeLine: Time in GMT to kick off insert. Format is [YYYY-MM-DD hh:mm:ss]");

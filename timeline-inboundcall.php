@@ -75,7 +75,7 @@
 	#get the DEFAULT thread
 	
 	
-	$sql = "SELECT ThreadID from DefaultInboundThread";
+	$sql = "SELECT ThreadID from DefaultInboundThread where Type='CALL'";
         $q = $db->prepare($sql);
         $q->execute();
 

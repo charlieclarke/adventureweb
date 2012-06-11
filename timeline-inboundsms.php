@@ -110,7 +110,7 @@
 		$mp3Name = $r['mp3Name'];
 		$childtext=$r['ChildThreadID'];
 
-		deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,"inbound SMS: $smsMessageBody");
+		deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,"inbound SMS: $smsMessageBody",$numberID);
 
 	}
 
@@ -126,10 +126,24 @@
 
 		$q->setFetchMode(PDO::FETCH_BOTH);
 
-		deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,"inbound SMS default: $smsMessageBody");
+
+		 while($r = $q->fetch()){
+			$threadID = $r['id'];
+			echo("<!-- got default threadID of $r[id] -->");
+
+			$actionTypeID = $r['ActionType'];
+			$mp3Name = $r['mp3Name'];
+			$childtext=$r['ChildThreadID'];
+
+			deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,"inbound SMS: $smsMessageBody",$numberID);
+		}
+
+        }
 
 
-	}
+
+
+
 
 
 
@@ -194,7 +208,7 @@ function insert_into_calltrack($threadID, $numberID, $comment)  {
 }
 
 
-function deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,$calltracktext) {
+function deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,$calltracktext,$numberID) {
 	echo "<!--dealing with threadID $threadID-->";
 	$dealWithChildren = 0;
 	global $inboundSMSAction;

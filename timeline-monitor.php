@@ -69,9 +69,18 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	#perform actions etc.
-	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREAD') {
+	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADSMS') {
 
-                $sql = "update DefaultInboundThread set ThreadID = ?";
+                $sql = "update DefaultInboundThread set ThreadID = ? where Type='SMS'";
+
+                $st = $db->prepare($sql);
+                $st->execute(array($threadID));
+
+        }
+
+	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADCALL') {
+
+                $sql = "update DefaultInboundThread set ThreadID = ? where Type='CALL'";
 
                 $st = $db->prepare($sql);
                 $st->execute(array($threadID));
@@ -276,10 +285,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	#default inbound thread
 	echo("<form>");
-	echo("Set the Default Inbound Thread - which is the thread which runs if an unknown or unsetup number calls:");
-	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREAD' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+	echo("Set the Default Inbound SMS Thread:");
+	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSMS' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
 
-                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread)");
+                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='SMS')");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -295,6 +304,27 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</select><input type='submit' value='set'>";
 
 	echo "</form>";
+
+	echo("<form>");
+        echo("Set the Default Inbound Call Thread:");
+        echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADCALL' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='CALL')");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
+                }
+                $result = $db->query("SELECT * from Thread");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+
+        echo "</select><input type='submit' value='set'>";
+
+        echo "</form>";
 	
 
 	echo "<form action='" . $this_page . "' method='get'><table>";

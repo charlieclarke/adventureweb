@@ -458,7 +458,7 @@ echo "<br><br>";
                 $inout = ($row[IsOutbound]!=0)?"OUTBOUND":"INBOUND";
 
                 echo "<tr class='" .$rowstyle . "'>";
-                echo "<td>$inout</td><td>$row[TrackTime]</td><td>$row[ThreadDescription]</td><td>$row[Number]</td><td>$row[mp3Name]</td><td> $row[StatusText]</td>";
+                echo "<td>$inout</td><td>$row[TrackTime]</td><td>$row[ThreadDescription]</td><td>$row[Number]</td><td>" . htmlspecialchars($row['mp3Name']) . "</td><td>" . htmlspecialchars( $row['StatusText']) . "</td>";
                 echo "</tr>";
         }
         echo("</table>");

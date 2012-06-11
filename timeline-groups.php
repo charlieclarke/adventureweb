@@ -110,15 +110,18 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if ($crudAction == 'DELETENUMBER') {
 
 
+		echo "<!-- delete number-->";
 		$numberID = intval($_GET["NumberID"]);
 		 $sql = "DELETE FROM Number where NumberID = ? and NumberID > 0"; 
 		$st = $db->prepare($sql);
 		$st->execute(array($numberID));
 
-		$sql = "DELETE FROM GroupNumber where NumberID = ?";
+		echo "<!-- delete number-->";
+		$sql = "DELETE FROM GroupNumber where GNNumberID = ?";
                 $st = $db->prepare($sql);
                 $st->execute(array($numberID));
 	
+		echo "<!-- delete number-->";
 
 
 	}

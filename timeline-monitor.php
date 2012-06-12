@@ -194,7 +194,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 if ($threadID > 0) {
                         #we have a valid trigger to insert
 
-                        $sql = "INSERT INTO TimeLine select NULL," . $threadID . ",'$triggerDate',0,NULL,'timetriggered from monitoring page',NULL";
+                        $sql = "INSERT INTO TimeLine select NULL," . $threadID . ",'$triggerDate',0,NULL,'timetriggered from monitoring page',NULL,NULL";
 
                         echo("<!-- sql is " . $sql . "-->");
                         $count = $db->exec($sql);

@@ -15,8 +15,10 @@ $machinename =  gethostname();
          $ini_array = parse_ini_file($configfile);
 ?>
 <?php
-$username = "admin";
-$password  = "warsaw";
+$username = $ini_array['userID'];
+$password = $ini_array['password'];
+
+
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
     header('WWW-Authenticate: Basic realm="My Realm"');
     header('HTTP/1.0 401 Unauthorized');

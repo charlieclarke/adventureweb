@@ -174,6 +174,43 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	}
+
+	if ($globalAction == 'TRUNCATE') {
+                #grab current timeline and whack it into a file
+
+                $fname = "/var/tmp/timeline_dump_" . time();
+
+
+                $fh = fopen($fname, 'w');
+
+
+                $result = $db->query("SELECT * from CallTrack");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        foreach($row as $col) {
+                                fwrite($fh, $col);
+                                fwrite($fh,',');
+                        }
+                        fwrite($fh,"\n");
+
+                }
+                fclose($fh);
+
+
+                #and then delete
+                 $sql = "DELETE FROM CallTrack where TrackID not in (select TrackID from CallTrack order by TrackID desc LIMIT 10)";
+
+                echo("<!-- sql is " . $sql . "-->");
+                $count = $db->exec($sql);
+                echo("<!-- sql done " . $count . "rows -->");
+
+
+        }
+
+
+
+
 	if ($triggerAction == 'INSERT') {
 		if ($threadID > 0) {
 			#we have a valid trigger to insert
@@ -444,7 +481,12 @@ echo "<br><br>";
 	echo("<div id='callTrak' >");
 
 	echo("<div class='tableTitle'>History</div><br><div class='tableDescription' width=250px>The History shows all inbound and outbound calls</div>");
-	echo "<br>";
+
+echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History to most recent 10</a>";
+        echo("&nbsp|&nbsp;");
+        echo "<a href='$base_url/timeline-csvhistory.php'>Export History</a>";
+
+
 
 	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number, Thread.mp3Name, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
 

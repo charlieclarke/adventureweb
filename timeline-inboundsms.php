@@ -223,16 +223,22 @@ function deal_with_thread($threadID, $actionTypeID, $mp3Name, $childtext,$calltr
 		#if the content of the text matches the mp3name field - OR the mp3name is blank, kick off the children.
 
 		#this is a TODO...
-		$posInString = strpos(" $smsMessageBody", "$mp3Name");
-		echo"<!-- found $mp3Name in $smsMessageBody at $posInString -->";
-
-		if ($posInString > 0) {
-			$dealWithChildren = 1;
+		if (empty($mp3Name)) {
+			$dealWithChildren=1;
+			echo "<!-- no filter so lets deal with children -->";
 		} else {
-			$dealWithChildren=0;
-
+			$posInString = strpos(" $smsMessageBody", "$mp3Name");
 			echo"<!-- found $mp3Name in $smsMessageBody at $posInString -->";
+
+			if ($posInString > 0) {
+				$dealWithChildren = 1;
+			} else {
+				$dealWithChildren=0;
+
+				echo"<!-- found $mp3Name in $smsMessageBody at $posInString -->";
+			}
 		}
+		
 
 	}
 

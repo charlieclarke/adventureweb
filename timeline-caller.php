@@ -6,6 +6,8 @@
 	$secret = $_GET["secret"];
 	$callTrackID = intval($_GET["CallTrackID"]);
 
+	$dialToneActionType=10;
+	$dialToneThreadID = 0;
 
 	$machinename =  gethostname();
 
@@ -21,6 +23,7 @@
         $local_secret = $ini_array['sharedSecret'];
         $db_location = $ini_array['databasepath'];
         $mp3Server = $ini_array['mp3Server'];
+        $phpServer = $ini_array['phpServer'];
 
 	#if ($secret != $local_secret) {
 #		header("HTTP/1.0 401 Unauthorized");
@@ -46,6 +49,8 @@
 
 
 	#does the thread have a CHILD - if so - spawn it at <frequency> minutes time - note freqeucnt is the freq of the CHILD not the parent.
+	#unless the child is a DIALTONE response - in which case, mark the response ot this call as needing 'gather', and send the gather
+	# to inboundtone.php noting the threadID of the child...
 	$childID = -1;
 	$sql = "SELECT ChildThreadID FROM Thread WHERE id = ? and ChildThreadID is not NULL and ChildThreadID > 0";
         $q = $db->prepare($sql);
@@ -63,35 +68,43 @@
 	$childIDs = explode(',',$childtext);
 	foreach($childIDs as $childID) {
 	
-	$childID = intval($childID);
+		$childID = intval($childID);
 
-	if ($childID > 0) {
-		echo("<!-- found a child " . $childID . "-->");
-		#TODO split to multiple children eg SMS and a call
-
-		$freq=-1;
-		
-		$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
-		$q = $db->prepare($sql);
-		$q->execute(array($childID));
+		if ($childID > 0) {
+			echo("<!-- found a child " . $childID . "-->");
 
 
-		$q->setFetchMode(PDO::FETCH_BOTH);
+			$freq=-1;
+			
+			$sql = "SELECT ActionType, FrequencyMinutes FROM Thread WHERE id = ? ";
+			$q = $db->prepare($sql);
+			$q->execute(array($childID));
 
-		// fetch
-		while($r = $q->fetch()){
-		  $freq = intval($r['FrequencyMinutes']);
+
+			$q->setFetchMode(PDO::FETCH_BOTH);
+
+			// fetch
+			while($r = $q->fetch()){
+				$actionTypeID = intval($r['ActionType']);
+				$freq = intval($r['FrequencyMinutes']);
+			}
+			echo("<!-- child freq is " . $freq . "-->");
+
+			if ($actionTypeID != $dialToneActionType) {
+				echo("<!-- normal child action type, so insert into timeline-->");
+				#now we insert the new task to the timeline at now + freq minutes.
+
+				 $sql = "INSERT INTO TimeLine select NULL," . $childID . ",datetime('now','+".$freq." minutes'),0,NULL,'inserted on call',NULL";
+			       
+
+				echo("<!-- sql is " . $sql . "-->");
+				$count = $db->exec($sql);
+				echo("<!-- sql done " . $count . "rows -->");
+			} else {
+				$dialToneThreadID=$childID;
+				echo("<!-- dialtone child action type, so do not insert into timeline-->");
+			}
 		}
-		echo("<!-- child freq is " . $freq . "-->");
-		#now we insert the new task to the timeline at now + freq minutes.
-
-		 $sql = "INSERT INTO TimeLine select NULL," . $childID . ",datetime('now','+".$freq." minutes'),0,NULL,'inserted on call',NULL";
-               
-
-                echo("<!-- sql is " . $sql . "-->");
-		$count = $db->exec($sql);
-		echo("<!-- sql done " . $count . "rows -->");
-	}
 	}
 
 	#update call track
@@ -107,10 +120,17 @@
 
 
 
-?>
-<Response>
-<Pause length="2"/>
-<Play><?php echo($mp3Server); ?><?php echo($mp3name); ?></Play>
-</Response>
+	echo "<Response>";
+	echo "<Pause length=\"2\"/>";
+	if ($dialToneThreadID > 0) {
+		echo "\n<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$threadID&amp;ThreadID=$dialToneThreadID&amp;CallTrackID=$callTrackID\">";
+		#echo "\n<Gather action=\"$phpServer/timeline-inboundtone.php?CallTrackID=$callTrackID\" method=\"GET\">";
+	}
+	echo "\n<Play>$mp3Server$mp3name</Play>";
+	if ($dialToneThreadID > 0) {
+		echo "</Gather>";
+	}
+	echo "</Response>";
 
+?>
 

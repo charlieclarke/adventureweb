@@ -126,21 +126,14 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newThreadNumber = $_GET["NewThreadDestNumber"];
 		$newThreadFrequency = $_GET["NewFrequency"];
 		$newThreadMp3 = $_GET["NewMp3Name"];
-		$newChildThreadID1 = intval($_GET["NewChildThreadID1"]);
-		$newChildThreadID2 = intval($_GET["NewChildThreadID2"]);
+		$newChildThreadID_list =$_GET["NewChildThreadID"];
 		$newStartHour = intval($_GET["NewStartTimeHours"]);
 		$newStopHour = intval($_GET["NewStopTimeHours"]);
 		$newStartMinute = intval($_GET["NewStartTimeMinutes"]);
 		$newStopMinute = intval($_GET["NewStopTimeMinutes"]);
 
-		$newChildThreadID = 0;
+		$newChildThreadID = implode(',',$newChildThreadID_list);
 
-		if ($newChildThreadID1 > 0) {
-			$newChildThreadID = $newChildThreadID1;
-			if ($newChildThreadID2 > 0) {
-				$newChildThreadID = $newChildThreadID . "," . $newChildThreadID2;
-			}
-		}
 
 		 $sql = "DELETE FROM Thread where id = ?"; 
 
@@ -410,8 +403,7 @@ echo "<br><br>";
 			$default_group_id = $row[GroupID];
 			$default_mp3_name = $row['mp3Name'];
 			$default_frequency_minutes = $row['FrequencyMinutes'];
-			$default_child_thread_id_1 = 0;
-			$default_child_thread_id_2 = 0;
+			$default_child_thread_id = explode(',',$row['ChildThreadID']);
 			$default_start_time_hour = $row['StartTimeHour'];
 			$default_start_time_minute = $row['StartTimeMinute'];
 			$default_stop_time_hour = $row['StopTimeHour'];
@@ -461,36 +453,23 @@ echo "<br><br>";
 	echo "</td>";
 	echo "<td><input type='text' name='NewMp3Name' value='$default_mp3_name'/></td>";
 	echo "<td><input type='text' name='NewFrequency' value='$default_frequency_minutes'/></td>";
-	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID1'>";
+	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID[]' multiple='multiple' size=3>";
 
 		echo "<option value='0'>0 (no child thread)</option>";
 		$result = $db->query("SELECT * from Thread");
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
-			$selected = ($row['id'] == $default_child_thread_id_1)?'selected':'';
+			$selected = (in_array($row['id'],$default_child_thread_id))?'selected':'';
 
 			echo "<option $selected  value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
 		}
 
 	echo "</select>";
-	echo "<br>";
-	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID2'>";
-
-		echo "<option value='0'>0 (no child thread)</option>";
-		$result = $db->query("SELECT * from Thread");
-		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-		foreach($rowarray as $row) {
-
-			$selected = ($row['id'] == $default_child_thread_id_2)?'selected':'';
-			echo "<option $selected value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
-		}
-
-	echo "</select>";
 	echo "</td>";
-	echo "<td><input type='text' size=1  name='NewStartTimeHours' value='$default_start_time_hours'/>:";
-	echo "<input type='text' size=1 name='NewStartTimeMinutes' value='$default_start_time_minutes'/>-&gt;";
-	echo "<input type='text' size=1 name='NewStopTimeHours' value='$default_stop_time_hours'/>:";
-	echo "<input type='text' size=1 name='NewStopTimeMinutes' value='$default_stop_time_minutes'/>";
+	echo "<td><input type='text' size=1  name='NewStartTimeHours' value='$default_start_time_hour'/>:";
+	echo "<input type='text' size=1 name='NewStartTimeMinutes' value='$default_start_time_minute'/>-&gt;";
+	echo "<input type='text' size=1 name='NewStopTimeHours' value='$default_stop_time_hour'/>:";
+	echo "<input type='text' size=1 name='NewStopTimeMinutes' value='$default_stop_time_minute'/>";
 	echo "</td>";
 	echo "<td><input type='submit' value='Submit' /></td>";
 	echo "</tr>";

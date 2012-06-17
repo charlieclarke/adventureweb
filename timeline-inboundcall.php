@@ -24,223 +24,145 @@
         $local_secret = $ini_array['sharedSecret'];
         $db_location = $ini_array['databasepath'];
         $mp3Server = $ini_array['mp3Server'];
+	$phpServer = $ini_array['phpServer'];
 
         $db = new PDO('sqlite:'.$db_location);
+
+	require_once('timeline-lib.php');
+
+	$tdb = new DB($db_location);
 
 	$inboundMp3Action = 6;
 	$inboundTextAction = 5;
 	#see if we can find the number
 
-        $sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ?";
-        $q = $db->prepare($sql);
-        $q->execute(array($inboundnumber));
 
-
-        $q->setFetchMode(PDO::FETCH_BOTH);
-
-	$numberID = 0;
-	$numberDescription='unknown';
-        // fetch
-        while($r = $q->fetch()){
-          $numberID = $r['NumberID'];
-          $numberDescription = $r['NumberDescription'];
-        }
-
-
-	#if we dont know the number - add it.
-	if ($numberID == 0) {
-
-		$sql = "INSERT into Number (Number, NumberDescription) values(?,?)";
-		$q = $db->prepare($sql);
-		$q->execute(array($inboundnumber,'unknown inbound number'));
-
-
-		#and get the new numberID
-		$sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ?";
-		$q = $db->prepare($sql);
-		$q->execute(array($inboundnumber));
-
-		$q->setFetchMode(PDO::FETCH_BOTH);
-
-		$numberID = 0;
-		$numberDescription='unknown';
-		// fetch
-		while($r = $q->fetch()){
-		  $numberID = $r['NumberID'];
-		  $numberDescription = $r['NumberDescription'];
-		}
-	}
+	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
 
 
 	#get the DEFAULT thread
 	
+        $defaultThreadID = $tdb->getDefaultThreadID('CALL');
+
+	#get all inbound threads associated with this number - including default, and all others that are not 
+	#even inbound calls etc. 
+
+
+	$objThreadsArray = $tdb->getThreadsByPhoneNumberID($objInboundNumber->NumberID);
 	
-	$sql = "SELECT ThreadID from DefaultInboundThread where Type='CALL'";
-        $q = $db->prepare($sql);
-        $q->execute();
 
-
-        $q->setFetchMode(PDO::FETCH_BOTH);
-
-        $defaultThreadID = 0;
-        // fetch
-        while($r = $q->fetch()){
-          $defaultThreadID = $r['ThreadID'];
-        }
-
-	#see if there are any inbound threads associated with this number
-
-	$sql = "SELECT Thread.id, Thread.mp3Name, Thread.ActionType,Thread.ChildThreadID from Thread, Groups, Number, GroupNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.Number = ? and Thread.ActionType in (?,?) and Thread.id not in (?)  order by Thread.FrequencyMinutes";
-
-	echo("<!--exec sql " . $sql . "-->");
-	$q = $db->prepare($sql);
-        $q->execute(array($inboundnumber, $inboundMp3Action, $inboundTextAction,$defaultThreadID));
-
-        $q->setFetchMode(PDO::FETCH_BOTH);
-	
+	#loop through all threads.
+	#if they are NOT the default ID, AND they are relevent to us - then process.
 	$todoxml = "";
-        while($r = $q->fetch()){
-		$threadID = $r['id'];
-		echo("<!-- got threadID of $r[id] -->"); 
-		$defaultThreadID = 0;
+	$gather_pre="";	
+	$gather_post = "";
+	foreach($objThreadsArray as $objThread) {
+		echo("<!-- got threadID of $objThread->ThreadID -->"); 
 
-		$actionTypeID = $r['ActionType'];
-		$mp3Name = $r['mp3Name'];
-		$childtext=$r['ChildThreadID'];
+		if ($objThread->ThreadID != $defaultThreadID) {
 
-		if ($actionTypeID == $inboundMp3Action) {
-			#play mp3
-
-			$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
-
-		} else if ($actionTypeID == $inboundTextAction) {
-
-			$saytext = $mp3Name;
-
-			$saytext = str_replace("[InboundName]",$numberDescription, $saytext);
-			$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
-
-			#play text
-		}
-
-		#deal with children
-		$childIDs = explode(',',$childtext);
-		foreach($childIDs as $childID) {
-
-			$childID = intval($childID);
-
-			if ($childID > 0) {
-				echo("<!-- found a child " . $childID . "-->");
-
-				$freq=-1;
-
-				$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
-				$q = $db->prepare($sql);
-				$q->execute(array($childID));
-
-				$q->setFetchMode(PDO::FETCH_BOTH);
-
-				// fetch
-				while($r = $q->fetch()){
-				  $freq = intval($r['FrequencyMinutes']);
-				}
-				echo("<!-- child freq is " . $freq . "-->");
-				#now we insert the new task to the timeline at now + freq minutes.
-#id INTEGER PRIMARY KEY, ThreadId INTEGER, ActivityTime DATETIME, Completed INTEGER, CompletedTime DATETIME, Description TEXT, Notes TEXT, AdditionalNumberID INTEGER
-
-				 $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $childID ,datetime('now','+$freq minutes'),0,NULL,'inserted on call',NULL,$numberID)";
-
-
-				echo("<!-- sql is " . $sql . "-->");
-				$count = $db->exec($sql);
-				echo("<!-- sql done " . $count . "rows -->");
-			}
-		}
-
-		#insert the thread into calltrack...
-		$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered','')";
-		$qq = $db->prepare($sql);
-		$qq->execute(array($threadID, $numberID));
-	} 
-
-	if ($defaultThreadID >0) {
-		#do default behaviour
-		$sql = "SELECT Thread.id, Thread.mp3Name, Thread.ActionType,Thread.ChildThreadID from Thread where Thread.id  in (?)  order by Thread.FrequencyMinutes";
-
-		echo("<!--exec sql " . $sql . "-->");
-		$q = $db->prepare($sql);
-		$q->execute(array($defaultThreadID));
-
-		$q->setFetchMode(PDO::FETCH_BOTH);
-
-		$todoxml = "";
-		while($r = $q->fetch()){
-			$threadID = $r['id'];
-			echo("<!-- got threadID of $r[id] -->"); 
-			$defaultThreadID = 0;
-
-			$actionTypeID = $r['ActionType'];
-			$mp3Name = $r['mp3Name'];
-			$childtext=$r['ChildThreadID'];
+			$actionTypeID = $objThread->ActionTypeID;
+			$mp3Name = $objThread->mp3Name;
 
 			if ($actionTypeID == $inboundMp3Action) {
-				#play mp3
-
+				$defaultThreadID = 0;
 				$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
-
 			} else if ($actionTypeID == $inboundTextAction) {
 
+				$defaultThreadID = 0;
 				$saytext = $mp3Name;
-
-				$saytext = str_replace("[InboundName]",$numberDescription, $saytext);
+				$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
 				$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
 
-				#play text
 			}
 
+			#if we found a thread of interest, we need to do children, and add to calltrack
+
+			if ($defaultThreadID ==0) {
+
+				#insert the thread into calltrack...
+
+				$callTrackID = $tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
+				#deal with children
+				foreach($objThread->ChildThreads as $childID) {
+
+					$childID = intval($childID);
+
+					if ($childID > 0) {
+						echo("<!-- found a child " . $childID . "-->");
+
+						$objChildThread = $tdb->getThreadByThreadID($childID);
+
+						echo("<!-- got child ID object-->");
+						#see if its a dialtone child - if so, we dont do anything active
+						#we jsut make sure the response has a Gather
+
+						if ($objChildThread->ActionTypeID == ActionType::$DialToneActionType) {
+
+						echo("<!-- found a child which is a dial tone-->");
+							$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID\">";
+							$gather_post = "</Gather>";
+
+						} else {
+
+							$freq = $objChildThread->FrequencyMinutes;
+							echo("<!-- child freq is " . $freq . "-->");
+
+							$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,'inserted as child of call');
+						}
+					}
+				}
+
+			}
+		} 
+	}
+
+	if ($defaultThreadID >0) {
+
+		$objThread = $objChildThread = $tdb->getThreadByThreadID($defaultThreadID);
+		#do default behaviour
+		$actionTypeID = $objThread->ActionTypeID;
+		$mp3Name = $objThread->mp3Name;
+
+		if ($actionTypeID == $inboundMp3Action) {
+			$defaultThreadID = 0;
+			$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+		} else if ($actionTypeID == $inboundTextAction) {
+
+			$defaultThreadID = 0;
+			$saytext = $mp3Name;
+			$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
+			$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
+
+		}
+
+		#if we found a thread of interest, we need to do children, and add to calltrack
+
+		if ($defaultThreadID ==0) {
+
 			#deal with children
-			#deal with children
-			$childIDs = explode(',',$childtext);
-			foreach($childIDs as $childID) {
+			foreach($objThread->ChildThreads as $childID) {
 
 				$childID = intval($childID);
 
 				if ($childID > 0) {
 					echo("<!-- found a child " . $childID . "-->");
 
-					$freq=-1;
+					$objChildThread = $tdb->getThreadByThreadID($childID);
 
-					$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
-					$q = $db->prepare($sql);
-					$q->execute(array($childID));
-
-					$q->setFetchMode(PDO::FETCH_BOTH);
-
-					// fetch
-					while($r = $q->fetch()){
-					  $freq = intval($r['FrequencyMinutes']);
-					}
+					  $freq = $objChildThread->FrequencyMinutes;
 					echo("<!-- child freq is " . $freq . "-->");
-					#now we insert the new task to the timeline at now + freq minutes.
-	#id INTEGER PRIMARY KEY, ThreadId INTEGER, ActivityTime DATETIME, Completed INTEGER, CompletedTime DATETIME, Description TEXT, Notes TEXT, AdditionalNumberID INTEGER
 
-					 $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $childID ,datetime('now','+$freq minutes'),0,NULL,'inserted on call',NULL,$numberID)";
-
-
-					echo("<!-- sql is " . $sql . "-->");
-					$count = $db->exec($sql);
-					echo("<!-- sql done " . $count . "rows -->");
+					$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,'inserted as child of call');
 				}
 			}
 
-
 			#insert the thread into calltrack...
-			$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,'inbound call answered default behaviour','')";
-			$qq = $db->prepare($sql);
-			$qq->execute(array($threadID, $numberID));
 
-
+			$tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
 		}
+
+
 
 	}
 
@@ -254,7 +176,9 @@
     // now greet the caller
 ?>
 <Response>
+    <?php echo $gather_pre ?>
     <?php echo $todoxml ?>
+    <?php echo $gather_post ?>
 </Response>
 
 

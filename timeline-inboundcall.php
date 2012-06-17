@@ -59,6 +59,9 @@
 	foreach($objThreadsArray as $objThread) {
 		echo("<!-- got threadID of $objThread->ThreadID -->"); 
 
+		$ofInterest=0;
+		
+
 		if ($objThread->ThreadID != $defaultThreadID) {
 
 			$actionTypeID = $objThread->ActionTypeID;
@@ -67,8 +70,10 @@
 			if ($actionTypeID == $inboundMp3Action) {
 				$defaultThreadID = 0;
 				$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+				$ofInterest = 1;
 			} else if ($actionTypeID == $inboundTextAction) {
 
+				$ofInterest = 1;
 				$defaultThreadID = 0;
 				$saytext = $mp3Name;
 				$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
@@ -78,7 +83,7 @@
 
 			#if we found a thread of interest, we need to do children, and add to calltrack
 
-			if ($defaultThreadID ==0) {
+			if ($ofInterest == 1) {
 
 				#insert the thread into calltrack...
 
@@ -108,7 +113,7 @@
 							$freq = $objChildThread->FrequencyMinutes;
 							echo("<!-- child freq is " . $freq . "-->");
 
-							$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,'inserted as child of call');
+							$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,"inserted as child of call thread $objThread->ThreadID");
 						}
 					}
 				}
@@ -119,7 +124,7 @@
 
 	if ($defaultThreadID >0) {
 
-		$objThread = $objChildThread = $tdb->getThreadByThreadID($defaultThreadID);
+		$objThread = $tdb->getThreadByThreadID($defaultThreadID);
 		#do default behaviour
 		$actionTypeID = $objThread->ActionTypeID;
 		$mp3Name = $objThread->mp3Name;

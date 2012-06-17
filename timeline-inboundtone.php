@@ -11,6 +11,7 @@
 	$digits = intval($_REQUEST['Digits']);
 	$parentThreadID = intval($_REQUEST['ParentThreadID']);
 	
+	$additional_number_id = intval($_REQUEST['AdditionalNumberID']);
 
 	#sort out config 
 
@@ -93,11 +94,9 @@
 		$actionTypeID = $r['ActionType'];
 		$mp3Name = $r['mp3Name'];
 		$childtext=$r['ChildThreadID'];
-		$additional_number_id = $r['AdditionalNumberID'];
 		#todo: get additional number ID from calltrack
 
 		echo "<!-- tone thread is $threadID - mp3 is $mp3Name deal wih-->";
-		$additional_number_id = 0;
 		deal_with_tone_thread($threadID, $mp3Name, $childtext,$digits, $additional_number_id);
 		echo "<!-- dealt with tone thread-->";
 

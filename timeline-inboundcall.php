@@ -100,7 +100,7 @@
 						if ($objChildThread->ActionTypeID == ActionType::$DialToneActionType) {
 
 						echo("<!-- found a child which is a dial tone-->");
-							$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID\">";
+							$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$objInboundNumber->NumberID\">";
 							$gather_post = "</Gather>";
 
 						} else {

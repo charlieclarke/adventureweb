@@ -51,7 +51,7 @@
 	$additional_number_id = 0;
 	#what is the number we are calling - this becomes the 'additionalNumberID' for callbacks etc.
 
-	sql = "SELECT NumberID FROM CallTrack WHERE TrackID = ?";
+	$sql = "SELECT TrackNumberID FROM CallTrack WHERE TrackID = ?";
         $q = $db->prepare($sql);
         $q->execute(array($callTrackID));
 

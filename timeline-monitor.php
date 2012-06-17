@@ -488,7 +488,7 @@ echo "<br><br>";
 	echo "<a href='$this_url?secret=$secret_local&GLOBAL=KILL'>Kill TimeLine</a>";
 	echo "&nbsp;&nbsp;<a href='$this_url?secret=$secret_local'>Refresh Page</a>";
 
-	$result = $db->query('select Thread.ThreadDescription,TimeLine.id, TimeLine.ThreadID, TimeLine.ActivityTime, TimeLine.Completed, TimeLine.CompletedTime, TimeLine.Description, TimeLine.Notes, Thread.ActionType, Thread.mp3Name, Thread.DestNumber, Thread.FrequencyMinutes from TimeLine, Thread where TimeLine.ThreadID = Thread.id order by TimeLine.ActivityTime desc');
+	$result = $db->query('select Thread.ThreadDescription,TimeLine.id, TimeLine.AdditionalNumberID, TimeLine.ThreadID, TimeLine.ActivityTime, TimeLine.Completed, TimeLine.CompletedTime, TimeLine.Description, TimeLine.Notes, Thread.ActionType, Thread.mp3Name, Thread.DestNumber, Thread.FrequencyMinutes from TimeLine, Thread where TimeLine.ThreadID = Thread.id order by TimeLine.ActivityTime desc');
 
 
 
@@ -506,7 +506,7 @@ echo "<br><br>";
 		
 		echo "<tr class='" .$rowstyle . "'>";
 		$completed=($row[Completed]==1)?'Yes (' . $row[CompletedTime] . ")":'No';
-                echo "<td>$row[id]</td><td>$row[ActivityTime]</td><td>$row[ThreadDescription]</td><td> $row[DestNumber]</td><td>$row[mp3Name]</td><td>$completed</td><td>$row[Description]</td>";
+                echo "<td>$row[id]</td><td>$row[ActivityTime]</td><td>$row[ThreadDescription]</td><td> $row[DestNumber] ($row[AdditionalNumberID])</td><td>$row[mp3Name]</td><td>$completed</td><td>$row[Description]</td>";
                 echo "</tr>";
         }
         echo("</table>");

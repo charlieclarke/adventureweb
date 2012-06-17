@@ -134,6 +134,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		$newChildThreadID = implode(',',$newChildThreadID_list);
 
+		if ($newChildThreadID == "") {
+			$newChildThreadID = 0;
+		}
+
 
 		 $sql = "DELETE FROM Thread where id = ?"; 
 

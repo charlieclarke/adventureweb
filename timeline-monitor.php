@@ -6,7 +6,7 @@
 <body>
 <?php
 $machinename =  gethostname();
-        if (preg_match("/local/i",$machinename)) {
+        if (preg_match("/local/i",$machinename) || preg_match("/wifi/i",$machinename) ) {
                 $configfile = "/var/tmp/config.local";
         } else {
                 $configfile = "/var/cache/timeline/config.local";
@@ -18,6 +18,7 @@ $machinename =  gethostname();
 $username = $ini_array['userID'];
 $password = $ini_array['password'];
 
+echo "<!-- u:$username p:$password-->";
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
     header('WWW-Authenticate: Basic realm="My Realm"');
@@ -112,6 +113,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 
 
+	}
+	if ($crudAction == 'EDITTHREAD') {
+		$editThreadID = intval($_GET["ThreadID"]);
+	} else {
+		$editThreadID = 0;
 	}
 	if ($crudAction == 'CREATETHREAD') {
 		$newThreadID = intval($_GET["NewThreadID"]);
@@ -374,28 +380,69 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$maxID = 0;	
 echo "<br><br>";
 	
+	$default_thread_description='thread description';
+	$default_action_type=1;
+	$default_group_id = 0;
+	$default_mp3_name = 'mp3 name / text';
+	$default_frequency_minutes = 0;
+	$default_child_thread_id_1 = 0;
+	$default_child_thread_id_2 = 0;
+	$default_start_time_hour = 0;
+	$default_start_time_minute = 0;
+	$default_stop_time_hour = 23;
+	$default_stop_time_minute = 59;
+	
 	foreach($rowarray as $row)
 	{
 		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
 		
 		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td>$row[id]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a></td>";
+		echo "<td>$row[id]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
 		echo "</tr>";
 		$maxID = $row[id];
+
+
+		#capture details if we are editing...
+		if ($editThreadID == $row['id']) {
+
+			$default_thread_description=$row['ThreadDescription'];
+			$default_action_type=$row['ActionType'];
+			$default_group_id = $row[GroupID];
+			$default_mp3_name = $row['mp3Name'];
+			$default_frequency_minutes = $row['FrequencyMinutes'];
+			$default_child_thread_id_1 = 0;
+			$default_child_thread_id_2 = 0;
+			$default_start_time_hour = $row['StartTimeHour'];
+			$default_start_time_minute = $row['StartTimeMinute'];
+			$default_stop_time_hour = $row['StopTimeHour'];
+			$default_stop_time_minute = $row['StopTimeMinute'];
+			
+
+
+		} 
 	}
 	$rowstyle = (($maxID+1) % 2)==0?"d0":"d1";
+
+	if ($editThreadID > 0) {
+		$new_thread_id = $editThreadID;
+	} else {
+		$new_thread_id = $maxID + 1;
+	}
+	
 	echo "<tr class='" .$rowstyle . "'>";
 	echo "<input type='hidden' name='CRUD' value='CREATETHREAD'/>";
 	echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
-	echo "<td><input type='text' size=2 name='NewThreadID' value='" . ($maxID + 1) . "'/></td>";
-	echo "<td><input type='text' name='NewThreadDesc' value='Thread Description'/></td>";
+	echo "<td><input type='text' size=2 name='NewThreadID' value='$new_thread_id'/></td>";
+	echo "<td><input type='text' name='NewThreadDesc' value='$default_thread_description'/></td>";
 	echo "<td><select name='NewActionID'>";
 
 		$result = $db->query("SELECT * from Action");
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
 
-			echo "<option value='$row[ActionTypeID]'>$row[ActionTypeID] ($row[ActionName])</option>";
+			$selected = ($row['ActionTypeID'] == $default_action_type)?'selected':'';
+
+			echo "<option $selected value='$row[ActionTypeID]'>$row[ActionTypeID] ($row[ActionName])</option>";
 		}
 
 	echo "</td>";
@@ -406,21 +453,23 @@ echo "<br><br>";
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
 
-			echo "<option value='$row[GroupID]'>$row[GroupName] </option>";
+			$selected = ($row['GroupID'] == $default_group_id)?'selected':'';
+			echo "<option $selected value='$row[GroupID]'>$row[GroupName] </option>";
 		}
 
 	echo "</select>";
 	echo "</td>";
-	echo "<td><input type='text' name='NewMp3Name' value='mp3name / message'/></td>";
-	echo "<td><input type='text' name='NewFrequency' value='0'/></td>";
+	echo "<td><input type='text' name='NewMp3Name' value='$default_mp3_name'/></td>";
+	echo "<td><input type='text' name='NewFrequency' value='$default_frequency_minutes'/></td>";
 	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID1'>";
 
 		echo "<option value='0'>0 (no child thread)</option>";
 		$result = $db->query("SELECT * from Thread");
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
+			$selected = ($row['id'] == $default_child_thread_id_1)?'selected':'';
 
-			echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+			echo "<option $selected  value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
 		}
 
 	echo "</select>";
@@ -432,15 +481,16 @@ echo "<br><br>";
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
 
-			echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+			$selected = ($row['id'] == $default_child_thread_id_2)?'selected':'';
+			echo "<option $selected value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
 		}
 
 	echo "</select>";
 	echo "</td>";
-	echo "<td><input type='text' size=1  name='NewStartTimeHours' value='00'/>:";
-	echo "<input type='text' size=1 name='NewStartTimeMinutes' value='00'/>-&gt;";
-	echo "<input type='text' size=1 name='NewStopTimeHours' value='23'/>:";
-	echo "<input type='text' size=1 name='NewStopTimeMinutes' value='59'/>";
+	echo "<td><input type='text' size=1  name='NewStartTimeHours' value='$default_start_time_hours'/>:";
+	echo "<input type='text' size=1 name='NewStartTimeMinutes' value='$default_start_time_minutes'/>-&gt;";
+	echo "<input type='text' size=1 name='NewStopTimeHours' value='$default_stop_time_hours'/>:";
+	echo "<input type='text' size=1 name='NewStopTimeMinutes' value='$default_stop_time_minutes'/>";
 	echo "</td>";
 	echo "<td><input type='submit' value='Submit' /></td>";
 	echo "</tr>";

@@ -48,6 +48,24 @@
 	}
 
 
+	$additional_number_id = 0;
+	#what is the number we are calling - this becomes the 'additionalNumberID' for callbacks etc.
+
+	sql = "SELECT NumberID FROM CallTrack WHERE TrackID = ?";
+        $q = $db->prepare($sql);
+        $q->execute(array($callTrackID));
+
+
+        $q->setFetchMode(PDO::FETCH_BOTH);
+
+        // fetch
+        while($r = $q->fetch()){
+          $additional_number_id = $r['NumberID'];
+        }
+
+	
+
+
 	#does the thread have a CHILD - if so - spawn it at <frequency> minutes time - note freqeucnt is the freq of the CHILD not the parent.
 	#unless the child is a DIALTONE response - in which case, mark the response ot this call as needing 'gather', and send the gather
 	# to inboundtone.php noting the threadID of the child...
@@ -123,8 +141,7 @@
 	echo "<Response>";
 	echo "<Pause length=\"2\"/>";
 	if ($dialToneThreadID > 0) {
-		echo "\n<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$threadID&amp;ThreadID=$dialToneThreadID&amp;CallTrackID=$callTrackID\">";
-		#echo "\n<Gather action=\"$phpServer/timeline-inboundtone.php?CallTrackID=$callTrackID\" method=\"GET\">";
+		echo "\n<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$threadID&amp;ThreadID=$dialToneThreadID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$additional_number_id\">";
 	}
 	echo "\n<Play>$mp3Server$mp3name</Play>";
 	if ($dialToneThreadID > 0) {

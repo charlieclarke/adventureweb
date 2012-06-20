@@ -30,7 +30,9 @@
         $db_location = $ini_array['databasepath'];
         $mp3Server = $ini_array['mp3Server'];
 
-        $db = new PDO('sqlite:'.$db_location);
+	require_once('timeline-lib.php');
+
+        $tdb = new DB($db_location);
 
 	$inboundMp3Action = 6;
 	$inboundTextAction = 5;
@@ -42,7 +44,7 @@
 	#update call track noting the digits...
 
 
-	update_calltrack_status($callTrackID, " got keypress: $digits");
+	$tdb->update_calltrack_status($callTrackID, " got keypress: $digits");
 
 
 	echo "<Response><Say>thank you for giving me $digits</Say></Response>";
@@ -50,126 +52,61 @@
 
 	#get the children of the parent thread
 
-	$sql = "SELECT ChildThreadID from Thread where id = $parentThreadID";
-
-	echo("<!--exec sql " . $sql . "-->");
-	$q = $db->prepare($sql);
-        $q->execute(array());
-
-        $q->setFetchMode(PDO::FETCH_BOTH);
+	$objThread = $tdb->getThreadByThreadID($parentThreadID);
         
         $threadList = "";
-        while($r = $q->fetch()){
 
-		$childtext = $r['ChildThreadID'];
-	echo("<!--child test is $childtext-->");
-		$childIDs = explode(',',$childtext);
-		foreach($childIDs as $childID) {
-
-			$childID = intval($childID);
-
-			if ($childID > 0) {
-				$threadList = $threadList . "$childID,";
-			}
-		}
-	}
-	$threadList = $threadList . "0";
-
-
-	#get the child threads which are of type $inboundDialToneAction
-
-	$sql = "SELECT Thread.id, Thread.mp3Name, Thread.ActionType,Thread.ChildThreadID from Thread where Thread.id in ($threadList) and Thread.ActionType=?";
-
-		echo "<!-- tone thread is $threadID-->";
-	echo("<!--exec sql " . $sql . "-->");
-	$q = $db->prepare($sql);
-        $q->execute(array($inboundDialToneAction));
-
-        $q->setFetchMode(PDO::FETCH_BOTH);
+	foreach($objThread->ChildThreads as $childID) {
+		echo "<!--looking at child $childID\n-->";
+		$objChild = $tdb->getThreadByThreadID($childID);
 	
-	$todoxml = "";
-        while($r = $q->fetch()){
+		echo "<!--got child $childID\n-->";
+		if ($objChild->ActionTypeID == ActionType::$DialToneActionType) {
+			echo "<!-- child matchs actiontype-->";
 
-		$threadID = $r['id'];
-		$actionTypeID = $r['ActionType'];
-		$mp3Name = $r['mp3Name'];
-		$childtext=$r['ChildThreadID'];
-		#todo: get additional number ID from calltrack
+			#we need to deal with this child.
 
-		echo "<!-- tone thread is $threadID - mp3 is $mp3Name deal wih-->";
-		deal_with_tone_thread($threadID, $mp3Name, $childtext,$digits, $additional_number_id);
-		echo "<!-- dealt with tone thread-->";
+			deal_with_tone_thread($objChild,$digits, $additional_number_id);
+			echo "<!-- finish deal with child matchs actiontype-->";
+		}
 
 	}
-	echo "<!-- finished with  thread  $threadID-->";
+	echo "<!--DONE-->";
 
-function deal_with_children($childtext, $additional_number_id) {
+
+function deal_with_children($objThread, $additional_number_id) {
+
+	global $tdb;
 
 	global $numberID;
-	global $db;
 	
 	echo("<!-- deal with children $childtext -->");
 	#deal with children
-	$childIDs = explode(',',$childtext);
-	foreach($childIDs as $childID) {
-
-		$childID = intval($childID);
+	foreach($objThread->ChildThreads as $childID) {
 
 		if ($childID > 0) {
 			echo("<!-- found a child " . $childID . "-->");
 
-			$freq=-1;
+			$objChild = $tdb->GetThreadByThreadID($childID);
 
-			$sql = "SELECT FrequencyMinutes FROM Thread WHERE id = ? ";
-			$q = $db->prepare($sql);
-			$q->execute(array($childID));
+			$freq = $objChild->Frequency;
 
-			$q->setFetchMode(PDO::FETCH_BOTH);
+			#todo: if the child is some kind of calltree filter, do the call tree filter mp3 / text, and
+			#put the gather back to here...
 
-			// fetch
-			while($r = $q->fetch()){
-			  $freq = intval($r['FrequencyMinutes']);
-			}
 			echo("<!-- child freq is " . $freq . "-->");
-			#now we insert the new task to the timeline at now + freq minutes.
-#id INTEGER PRIMARY KEY, ThreadId INTEGER, ActivityTime DATETIME, Completed INTEGER, CompletedTime DATETIME, Description TEXT, Notes TEXT, AdditionalNumberID INTEGER
 
-			 $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $childID ,datetime('now','+$freq minutes'),0,NULL,'inserted on match tone',NULL,$additional_number_id)";
-
-
-			echo("<!-- sql is " . $sql . "-->");
-			$count = $db->exec($sql);
-			echo("<!-- sql done " . $count . "rows -->");
+			$tdb->insertToTimeLineOffset($childID, $freq, $additional_number_id,'inserted on match tone');
+			echo "<!-- done inserting to timeline-->";
+			
 		}
 	}
 }
 
 
-function update_calltrack_status($callTrackID, $comment) {
-
-
-	global $db;
-
-	$sql = "UPDATE CallTrack set StatusText = StatusText || ' $comment' where TrackID = $callTrackID";
-
-        echo "<!-- sql is $sql-->";
-        $q = $db->prepare($sql);
-        $q->execute(array());
-
-
-}
-function insert_into_calltrack($threadID, $numberID, $comment)  {
-	global $db;
-
-	$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (0,?,?,DATETIME('now'),'',0,$comment,'')";
-	$qq = $db->prepare($sql);
-	$qq->execute(array($threadID, $numberID));
-}
-
-
-function deal_with_tone_thread($threadID, $mp3Name, $childtext,$digits, $additional_number_id) {
-	global $db;
-	echo "<!--dealing with threadID $threadID-->";
+function deal_with_tone_thread($objThread,$digits, $additional_number_id) {
+	global $tdb;
+	echo "<!--dealing with threadID $objThread->ThreadID-->";
 	$dealWithChildren = 0;
 
 
@@ -178,34 +115,31 @@ function deal_with_tone_thread($threadID, $mp3Name, $childtext,$digits, $additio
 	#if the content of the text matches the mp3name field - OR the mp3name is blank, kick off the children.
 
 	#this is a TODO...
-	if (empty($mp3Name)) {
+	if (empty($objThread->mp3Name)) {
 		$dealWithChildren=1;
 		echo "<!-- no filter so lets deal with children -->";
 	} else {
 
-		if ($mp3Name == $digits) {
+		if ($objThread->mp3Name == $digits) {
 			$dealWithChildren = 1;
 		} else {
 			$dealWithChildren=0;
 
-			echo"<!-- did not find [$mp3Name] in [$digits]  -->";
+			echo"<!-- did not find [$objThread->mp3Name] in [$digits]  -->";
 		}
 	}
-
-		
 
 
 	if ($dealWithChildren > 0) {
 		#TODO: put insertion of children  into a subroutine
-		update_calltrack_status($callTrackID, " Matched $mp3name, add children.");
+		$tdb->update_calltrack_status($callTrackID, " Matched $mp3name, add children.");
 
 		echo"<!-- sort out kids -->";
-		deal_with_children($childtext,$additional_number_id);
+		deal_with_children($objThread,$additional_number_id);
 
 
 	}
 
-		#insert the thread into calltrack...
 }
 
 #end of function defs

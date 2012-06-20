@@ -10,6 +10,37 @@
 		function init() {
 		}
 
+		function getNumberIDFromCallTrack($callTrackID) {
+			$sql = "SELECT TrackNumberID FROM CallTrack WHERE TrackID = ?";
+			$q = $this->db->prepare($sql);
+			$q->execute(array($callTrackID));
+
+
+			$q->setFetchMode(PDO::FETCH_BOTH);
+
+			// fetch
+			$additional_number_id = 0;
+
+			while($r = $q->fetch()){
+			  $additional_number_id = $r['NumberID'];
+			}
+
+			return $additional_number_id;
+			
+
+		}
+
+
+	
+		function update_calltrack_status($callTrackID, $comment) {
+
+			$sql = "UPDATE CallTrack set StatusText = StatusText || '$comment' where TrackID = ?";
+
+			echo "<!-- sql is $sql-->";
+			$q = $this->db->prepare($sql);
+			$q->execute(array($callTrackID));
+
+		}
 
 		function insertIntoCallTrack($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails) {
 			#inserts into the calltrack, and returns the callTrackID

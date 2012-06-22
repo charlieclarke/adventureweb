@@ -6,6 +6,7 @@
     // if the caller is known, then greet them by name
     // otherwise, consider them just another monkey
     $inboundnumber = $_REQUEST['From'];
+	$twilionumber = $_REQUEST['To'];
 
 
 	#sort out config 
@@ -38,8 +39,10 @@
 
 
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
+	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 
+	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID -->";
 	#get the DEFAULT thread
 	
         $defaultThreadID = $tdb->getDefaultThreadID('CALL');
@@ -57,12 +60,12 @@
 	$gather_pre="";	
 	$gather_post = "";
 	foreach($objThreadsArray as $objThread) {
-		echo("<!-- got threadID of $objThread->ThreadID -->"); 
+		echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->"); 
 
 		$ofInterest=0;
 		
 
-		if ($objThread->ThreadID != $defaultThreadID) {
+		if ($objThread->ThreadID != $defaultThreadID && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
 
 			$actionTypeID = $objThread->ActionTypeID;
 			$mp3Name = $objThread->mp3Name;

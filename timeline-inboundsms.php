@@ -8,6 +8,7 @@
     $inboundnumber = $_REQUEST['From'];
     $smsMessageBody = $_REQUEST['Body'];
 
+	$twilionumber = $_REQUEST['To'];
 
 	#sort out config 
 
@@ -41,6 +42,7 @@
 
 
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
+	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 	#get the DEFAULT thread
 	
@@ -49,35 +51,139 @@
 
 	#see if there are any inbound threads associated with this number
 
+	#first - any with the group
+
+	#then - any on the null group which are NOT blank
+
+	#then - default
+
+	#only allow ONE match. as soon as one match is found, THAT is the threadID we work with. 
+	#only register ONCE in calltrak
+
+
 	
+
+	#get threads which match for this number
 	$objThreadsArray = $tdb->getThreadsByPhoneNumberID($objInboundNumber->NumberID);
 
 
 	$todoxml = "";
 
+	#first for NON blank mp3 names
+	echo("<!-- doing nunmber match group NON BLANK bahvious -->"); 
 	foreach($objThreadsArray as $objThread) {
-                echo("<!-- got threadID of $objThread->ThreadID -->"); 
+		if (!empty($objThread->mp3Name)) {
+			echo("<!-- got threadID of $objThread->ThreadID -->"); 
 
-		$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody");
+			$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
 
-		if ($ofInterest > 0) {
-			#then at least one thread matched, so we go forward
-			$defaultThreadID = 0;
+			if ($ofInterest > 0) {
+				#then at least one thread matched, so we go forward
+				$defaultThreadID = 0;
+				$objMatchThread = $objThread;
+				$note = "SMS filter match";
+			}
 		}
 
 	}
+	#now do it again for blanks
+	
+	if ($defaultThreadID > 0) {
+		echo("<!-- doing nunmber match group BLANK bahvious -->"); 
+		foreach($objThreadsArray as $objThread) {
+			if (empty($objThread->mp3Name)) {
+				echo("<!-- got threadID of $objThread->ThreadID -->");
+
+				$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+
+				if ($ofInterest > 0) {
+					#then at least one thread matched, so we go forward
+					$defaultThreadID = 0;
+					$objMatchThread = $objThread;
+					$note = "SMS number match";
+					echo "<!--matched blank number group behaviour-->";
+				}
+	
+			}
+
+		}
+	}
+		
 
 
+	#now get threads which match the null group
+
+
+	echo "<!--about to get null group threads-->\n";
+	$objThreadsArray = $tdb->getThreadsByNumberGroupID(0);
+
+	$num = sizeof($objThreadsArray);
+	echo "<!--got null group threads $num -->\n";
 	if ($defaultThreadID >0) {
-		echo("<!-- doing default bahvious -->"); 
+	
+		echo("<!-- doing null group NON BLANK bahvious -->"); 
 		#do default behaviour
-		$objThread = $tdb->getThreadByThreadID($defaultThreadID);
+
+		foreach($objThreadsArray as $objThread) {
+			echo "<!--got thread-->\n";
+                        if (!empty($objThread->mp3Name)) {
+				echo("<!--trying to match $smsMessageBody to $objThread->mp3Name-->\n");
+
+                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+        
+                                if ($ofInterest > 0) {
+                                        #then at least one thread matched, so we go forward
+                                        $defaultThreadID = 0;
+                                        $objMatchThread = $objThread;
+					$note = "SMS filter match - null group";
+                                }
+                        }
+
+                }
 
 
-		deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody");
 
 
         }
+
+	#and blank null group
+
+	if ($defaultThreadID >0) {
+                echo("<!-- doing null group blank bahvious -->");
+                #do default behaviour
+
+                foreach($objThreadsArray as $objThread) {
+                        if (empty($objThread->mp3Name)) {
+
+                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+
+                                if ($ofInterest > 0) {
+                                        #then at least one thread matched, so we go forward 
+                                       $defaultThreadID = 0;
+                                        $objMatchThread = $objThread;
+					$note = "SMS number match - null group";
+                                }
+                        }
+
+                }
+
+
+
+
+        }
+
+	#AND NOW DEFAULT
+	if ($defaultThreadID > 0) {
+		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
+			$note="SMS default behaviour";
+	}
+
+	#deal with children
+
+	deal_with_children($objMatchThread, $objInboundNumber);
+
+	$tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', "inbound $note ($objMatchThread->mp3Name): $smsMessageBody", '');
+
 
 
 
@@ -121,53 +227,42 @@ function deal_with_children($objThread, $objNumber) {
 
 
 
-function deal_with_thread($objThread, $objInboundNumber,$calltracktext) {
+function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwilioNumber) {
 	echo "<!--dealing with threadID $threadID-->";
 	$dealWithChildren = 0;
 
 	global $tdb;
 	global $smsMessageBody;
 
-	$dealWithChildren = 0;
-	if ($objThread->ActionTypeID == ActionType::$InboundSMSAction) {
+	$ofInterest=0;
+	$threadID = 0;
+	if ($objThread->ActionTypeID == ActionType::$InboundSMSAction  && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
 
-		echo"<!-- found matching inbound SMS action $objThread->ThreadID with mp3 $objThread->mp3Name  -->";
+		echo"<!-- found matching inbound SMS action $objThread->ThreadID with mp3 $objThread->mp3Name on $objTwilioNumber->TwilioNumberName  -->";
 		#if the content of the text matches the mp3name field - OR the mp3name is blank, kick off the children.
 
 		#this is a TODO...
 		if (empty($objThread->mp3Name)) {
-			$dealWithChildren=1;
-		$tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', "inbound SMS picked up: $calltracktext", '');
+			$ofInterest=1;
 			echo "<!-- no filter so lets deal with children -->";
 		} else {
 			$posInString = strpos(" $smsMessageBody", "$objThread->mp3Name");
-			echo"<!-- found $objThread->mp3Name in $smsMessageBody at $posInString -->";
 
 			if ($posInString > 0) {
-				$dealWithChildren = 1;
-			$tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', "inbound SMS picked up: $calltracktext - matched $objThread->mp3Name", '');
-			} else {
-				$dealWithChildren=0;
-			$tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', "inbound SMS picked up: $calltracktext - did NOT match $objThread->mp3Name", '');
-
+				$ofInterest = 1;
 				echo"<!-- found $mp3Name in $smsMessageBody at $posInString -->";
+			} else {
+				$ofInterest=0;
+
+				echo"<!-- DID NOT find $mp3Name in $smsMessageBody at $posInString -->";
 			}
 		}
 		
 
 	}
 
-	if ($dealWithChildren > 0) {
 
-		echo"<!-- sort out kids -->";
-		deal_with_children($objThread, $objInboundNumber);
-
-
-	}
-
-
-
-	return $dealWithChildren;
+	return $ofInterest;
 }
 
 #end of function defs

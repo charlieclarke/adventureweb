@@ -121,6 +121,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	}
 	if ($crudAction == 'CREATETHREAD') {
 		$newThreadID = intval($_GET["NewThreadID"]);
+		$newTNumberID = intval($_GET["NewTNumberID"]);
 		$newThreadDescription = $_GET["NewThreadDesc"];
 		$newActionID = intval($_GET["NewActionID"]);
 		$newThreadNumber = $_GET["NewThreadDestNumber"];
@@ -144,10 +145,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$st = $db->prepare($sql);
 		$st->execute(array($newThreadID));
 
-		$sql = "INSERT INTO Thread (id, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute) values (?,?,?,?,?,?,?,?,?,?,?)";
+		$sql = "INSERT INTO Thread (id, TNumberID, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		$st = $db->prepare($sql);
-		$st->execute(array($newThreadID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute));
+		$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute));
 
 	}
 	if ($crudAction == 'DELETETHREAD') {
@@ -284,7 +285,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	#render page
 
 	#top menu bar
-	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-twilio.php>Manage Twilio Account</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
 	echo("<br><br>");
 
 
@@ -371,14 +372,15 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo "<form action='" . $this_page . "' method='get'><table>";
 
-	$result = $db->query('SELECT * FROM Thread,Action, Groups where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID');
-	echo("<tr><th>ID</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
+	$result = $db->query('SELECT * FROM Thread,Action, Groups, TNumber where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID and Thread.TNumberID = TNumber.TNumberID');
+	echo("<tr><th>ID</th><th>Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
 echo "<br><br>";
 	
 	$default_thread_description='thread description';
 	$default_action_type=1;
+	$default_twilio_number=1;
 	$default_group_id = 0;
 	$default_mp3_name = 'mp3 name / text';
 	$default_frequency_minutes = 0;
@@ -394,7 +396,7 @@ echo "<br><br>";
 		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
 		
 		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td>$row[id]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
+		echo "<td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
 		echo "</tr>";
 		$maxID = $row[id];
 
@@ -403,6 +405,7 @@ echo "<br><br>";
 		if ($editThreadID == $row['id']) {
 
 			$default_thread_description=$row['ThreadDescription'];
+			$default_twilio_number=$row['TNumberID'];
 			$default_action_type=$row['ActionType'];
 			$default_group_id = $row[GroupID];
 			$default_mp3_name = $row['mp3Name'];
@@ -429,6 +432,23 @@ echo "<br><br>";
 	echo "<input type='hidden' name='CRUD' value='CREATETHREAD'/>";
 	echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
 	echo "<td><input type='text' size=2 name='NewThreadID' value='$new_thread_id'/></td>";
+
+
+
+	echo "<td><select name='NewTNumberID'>";
+
+                $result = $db->query("SELECT * from TNumber");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        $selected = ($row['TNumberID'] == $default_twilio_number)?'selected':'';
+
+                        echo "<option $selected value='$row[TNumberID]'>$row[TNumberID] ($row[TNumberName])</option>";
+                }
+
+        echo "</td>";
+
+
 	echo "<td><input type='text' name='NewThreadDesc' value='$default_thread_description'/></td>";
 	echo "<td><select name='NewActionID'>";
 

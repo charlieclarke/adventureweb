@@ -52,131 +52,61 @@
 
 
 	$objThreadsArray = $tdb->getThreadsByPhoneNumberID($objInboundNumber->NumberID);
-	
 
 	#loop through all threads.
 	#if they are NOT the default ID, AND they are relevent to us - then process.
 	$todoxml = "";
 	$gather_pre="";	
 	$gather_post = "";
+	$num = sizeof($objThreadsArray);
+	
+	echo("<!--got $num objects -->\n");
+	#check to see if the thread is inbound, matches a number, and is not the default.
 	foreach($objThreadsArray as $objThread) {
-		echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->"); 
+		echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->\n"); 
+		$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
 
-		$ofInterest=0;
-		
-
-		if ($objThread->ThreadID != $defaultThreadID && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
-
-			$actionTypeID = $objThread->ActionTypeID;
-			$mp3Name = $objThread->mp3Name;
-
-			if ($actionTypeID == $inboundMp3Action) {
-				$defaultThreadID = 0;
-				$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
-				$ofInterest = 1;
-			} else if ($actionTypeID == $inboundTextAction) {
-
-				$ofInterest = 1;
-				$defaultThreadID = 0;
-				$saytext = $mp3Name;
-				$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
-				$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
-
-			}
-
-			#if we found a thread of interest, we need to do children, and add to calltrack
-
-			if ($ofInterest == 1) {
-
-				#insert the thread into calltrack...
-
-				$callTrackID = $tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
-				#deal with children
-				foreach($objThread->ChildThreads as $childID) {
-
-					$childID = intval($childID);
-
-					if ($childID > 0) {
-						echo("<!-- found a child " . $childID . "-->");
-
-						$objChildThread = $tdb->getThreadByThreadID($childID);
-
-						echo("<!-- got child ID object-->");
-						#see if its a dialtone child - if so, we dont do anything active
-						#we jsut make sure the response has a Gather
-
-						if ($objChildThread->ActionTypeID == ActionType::$DialToneActionType) {
-
-						echo("<!-- found a child which is a dial tone-->");
-							$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$objInboundNumber->NumberID\">";
-							$gather_post = "</Gather>";
-
-						} else {
-
-							$freq = $objChildThread->FrequencyMinutes;
-							echo("<!-- child freq is " . $freq . "-->");
-
-							$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,"inserted as child of call thread $objThread->ThreadID");
-						}
-					}
-				}
-
-			}
-		} 
+		if ($ofInterest > 0) {
+			echo "<!--this thread IS of interest-->";
+			$defaultThreadID = 0;
+			$objMatchThread = $objThread;
+		}
 	}
 
-	if ($defaultThreadID >0) {
+	#now see if the thread matches the NULL group
 
-		$objThread = $tdb->getThreadByThreadID($defaultThreadID);
-		#do default behaviour
-		$actionTypeID = $objThread->ActionTypeID;
-		$mp3Name = $objThread->mp3Name;
+	if ($defaultThreadID > 0) {
 
-		if ($actionTypeID == $inboundMp3Action) {
-			$defaultThreadID = 0;
-			$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
-		} else if ($actionTypeID == $inboundTextAction) {
 
-			$defaultThreadID = 0;
-			$saytext = $mp3Name;
-			$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
-			$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
+		$objThreadsArray = $tdb->getThreadsByNumberGroupID(0);
+		$num = sizeof($objThreadsArray);
+		echo("<!--got $num threads which match the null group -->\n");
 
-		}
+		foreach($objThreadsArray as $objThread) {
+			echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->\n");
+			$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
 
-		#if we found a thread of interest, we need to do children, and add to calltrack
 
-		if ($defaultThreadID ==0) {
-
-			#deal with children
-			foreach($objThread->ChildThreads as $childID) {
-
-				$childID = intval($childID);
-
-				if ($childID > 0) {
-					echo("<!-- found a child " . $childID . "-->");
-
-					$objChildThread = $tdb->getThreadByThreadID($childID);
-
-					  $freq = $objChildThread->FrequencyMinutes;
-					echo("<!-- child freq is " . $freq . "-->");
-
-					$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,'inserted as child of call');
-				}
+			if ($ofInterest > 0) {
+				echo "<!--this null group thread IS of interest-->\n";
+				$objMatchThread = $objThread;
+				$defaultThreadID = 0;
 			}
-
-			#insert the thread into calltrack...
-
-			$tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
 		}
-
-
 
 	}
 
+	if ($defaultThreadID > 0) {
+		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
+		do_thread_action($objMatchThread);
+		echo "<!--using the default threadID-->\n";
+	}
 
 
-
+	#now add to calltrack, do children
+	$callTrackID = $tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
+	#deal with children
+	handle_children($objMatchThread);
 
 
 
@@ -189,4 +119,89 @@
     <?php echo $gather_post ?>
 </Response>
 
+<?php
+function handle_children($objThread) {
+
+	global $tdb;
+	global $gather_pre;
+	global $gather_post;
+
+	foreach($objThread->ChildThreads as $childID) {
+		$childID = intval($childID);
+		if ($childID > 0) {
+			echo("<!-- found a child " . $childID . "-->");
+			$objChildThread = $tdb->getThreadByThreadID($childID);
+			echo("<!-- got child ID object-->");
+			#see if its a dialtone child - if so, we dont do anything active
+			#we jsut make sure the response has a Gather
+			if ($objChildThread->ActionTypeID == ActionType::$DialToneActionType) {
+			echo("<!-- found a child which is a dial tone-->");
+				$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$objInboundNumber->NumberID\">";
+				$gather_post = "</Gather>";
+			} else {
+				$freq = $objChildThread->FrequencyMinutes;
+				echo("<!-- child freq is " . $freq . "-->");
+
+				$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,"inserted as child of call thread $objThread->ThreadID");
+			}
+		}
+	}
+
+
+}
+function handle_thread($objThread, $objTwilioNumber, $ignoreThreadID, $objInboundNumber) {
+
+
+	$ofInterest = 0;
+	if ($objThread->ThreadID != $ignoreThreadID && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
+		echo "<!--threadID $objThread->ThreadID might be of interest. actiontypeid is $actionTypeID-->\n" ;
+
+		$ofInterest = do_thread_action($objThread, $objInboundNumber);
+	}
+
+	return $ofInterest;
+}
+function do_thread_action($objThread, $objInboundNumber) {
+	global $todoxml;
+	global $inboundMp3Action;
+	global $inboundTextAction;
+	
+	$ofInterest = 0;
+	$actionTypeID = $objThread->ActionTypeID;
+	$mp3Name = $objThread->mp3Name;
+
+	echo("<!--doing action: $mp3Name aciton type $actionTypeID ($inboundMp3Action)($inboundTextAction)-->\n");
+	if ($actionTypeID == $inboundMp3Action) {
+		$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+		$ofInterest = 1;
+		echo "<!--threadID $objThread->ThreadID is of interest inbound mp3-->\n" ;
+	} else if ($actionTypeID == $inboundTextAction) {
+		echo "<!--threadID $objThread->ThreadID is of interest inbound text-->\n" ;
+		$ofInterest = 1;
+		$saytext = $mp3Name;
+		$saytext = str_replace("[InboundName]",$objInboundNumber->NumberDescription, $saytext);
+		$todoxml = $todoxml . "<Say voice='woman'>$saytext.</Say>";
+	} else {
+		echo "<!--threadID $objThread->ThreadID is of no interest -->\n" ;
+	}
+	return $ofInterest;
+
+}
+		#if we found a thread of interest, we need to do children, and add to calltrack
+#		if ($ofInterest == 1) {
+#			echo "<!--threadID $objThread->ThreadID is of interest so proceed-->\n" ;
+#			#insert the thread into calltrack...
+#			$callTrackID = $tdb->insertIntoCallTrack(0, $objThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
+#			#deal with children
+#			handle_chilren($objThread);
+#
+#		} else {
+#			echo "<!--threadID $objThread->ThreadID not of interest so move ot next one-->\n";
+#		}
+#	}
+
+
+
+
+?>
 

@@ -106,7 +106,7 @@
 	#now add to calltrack, do children
 	$callTrackID = $tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
 	#deal with children
-	handle_children($objMatchThread);
+	handle_children($objMatchThread,$objInboundNumber);
 
 
 
@@ -120,11 +120,12 @@
 </Response>
 
 <?php
-function handle_children($objThread) {
+function handle_children($objThread,$objInboundNumber) {
 
 	global $tdb;
 	global $gather_pre;
 	global $gather_post;
+	global $phpServer;
 
 	foreach($objThread->ChildThreads as $childID) {
 		$childID = intval($childID);

@@ -150,20 +150,42 @@
 
 
 		}
-		function insertToTimeLineOffset($threadID, $offsetMinutes, $additionalNumberID,$notes) {
-
-			$sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $threadID ,datetime('now','+$offsetMinutes minutes'),0,NULL,'$notes',NULL,$additionalNumberID)";
-
-
-			echo("<!-- insertToTImeLineOffset: sql is " . $sql . "-->");
-			$count = $this->db->exec($sql);
-			echo("<!-- sql done " . $count . "rows -->");
 
 
 
+		function insertToTimeLineOffset($threadID, $offsetMinutes, $NumberID,$notes) {
+
+			$sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $threadID ,datetime('now','+$offsetMinutes minutes'),0,NULL,'$notes',NULL,$NumberID)";
 
 
-		}
+                        echo("<!-- insertToTImeLineOffset: sql is " . $sql . "-->");
+                        $count = $this->db->exec($sql);
+                        echo("<!-- sql done " . $count . "rows -->");
+
+
+
+
+
+                }
+		function insertToTimeLineTime($threadID, $datetime, $NumberID,$notes) {
+
+			#datetime must be in GMT and in the format for sqlite.
+	
+                        $sql = "INSERT INTO TimeLine (ThreadId, ActivityTime, Completed, CompletedTime, Description, Notes, AdditionalNumberID) values( $threadID ,'$datetime',0,NULL,'$notes',NULL,$NumberID)";
+
+
+                        echo("<!-- insertToTImeLineTIme: sql is  $sql  datetime is $datetime -->");
+
+
+                        $count = $this->db->exec($sql);
+                        echo("<!-- sql done " . $count . "rows -->");
+			echo "<!--done-->\n";
+
+
+
+                }
+
+
 
 		function getThreadByThreadID($threadID) {
 
@@ -427,6 +449,41 @@
 
 		}
 
+		function getPhoneNumbersByGroupID($groupID) {
+			echo "<!--get numners by groupID: entered-->\n";
+                        $objNumber = new PhoneNumber;
+			$numbers = array();
+
+                        $sql = "SELECT Number, NumberID, NumberDescription  FROM Number, GroupNumber  WHERE Number.NumberID = GroupNumber.GNNumberID and GroupNumber.GNGroupID = ?";
+			echo "<!--get numners by groupID: sql is $sql-->\n";
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array($groupID));
+			echo "<!--get numners by groupID: sql is finished-->\n";
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $numberID = 0;
+                        $numberDescription='unknown';
+                        // fetch
+                        while($r = $q->fetch()){
+                          $numberID = $r['NumberID'];
+                          $numberDescription = $r['NumberDescription'];
+				$number = $r['Number'];
+
+				$objNumber = new PhoneNumber;
+				$objNumber->NumberID = $numberID;
+				$objNumber->Number = $number;
+				$objNumber->NumberDescription = $numberDescription;
+
+				$numbers[] = $objNumber;
+
+                        }
+
+                        return $numbers;
+
+                }
+
+
 
 
 
@@ -462,6 +519,7 @@
 
 		public static $InboundSMSAction = 9;
 		public static $DialToneActionType=10;
+		public static $KickOffActionType=11;
 	}
 
 	class HeartBeat {

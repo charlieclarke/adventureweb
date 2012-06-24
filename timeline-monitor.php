@@ -18,6 +18,9 @@ $machinename =  gethostname();
 $username = $ini_array['userID'];
 $password = $ini_array['password'];
 
+
+
+
 echo "<!-- u:$username p:$password-->";
 
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
@@ -61,6 +64,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 	$this_url = $base_url . "/timeline-monitor.php";
 	
+
+	require_once('timeline-lib.php');
+
+	$tdb = new DB($db_location);
+	$tdb->init();
 
 	#if ($secret != $local_secret) {
 #		header("HTTP/1.0 401 Unauthorized");
@@ -212,6 +220,46 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
         }
 
+	#triggers of SEND
+
+	
+		echo "<!--pre  kick off number triggeraction = $triggerAction-->\n";
+	if ($triggerAction == 'KICKOFFNUMBER') {
+		echo "<!-- kick off number-->\n";
+                $triggerDate= $_GET["INSERTTIME"];
+		$additionalNumberID = intval($_GET['AdditionalNumberID']);
+
+                if ($threadID > 0) {
+                        #we have a valid kick to insert
+			echo "<!-- kick off numbea: about to insert to timelinerfor add number $additionalNumberID ->\n";
+			$tdb->insertToTimeLineTime($threadID, $triggerDate, $additionalNumberID,'send from monitor page'); 
+	
+			echo "<!-- kick off numbea: insertrd into -->\n";
+
+                }
+        }
+
+	if ($triggerAction == 'KICKOFFGROUP') {
+                $triggerDate= $_GET["INSERTTIME"];
+                $groupID = intval($_GET['GroupID']);
+		$threadID = intval($_GET['ThreadID']);
+
+		echo "<!-- kick off group: threadID = $threadID groupID = $groupID-->\n";
+                if ($threadID > 0) {
+                        #we have a valid kick to insert
+			#get all numbers in the group.
+
+			echo "<--abut to get  numbers array-->\n";
+			$objNumberArray = $tdb->getPhoneNumbersByGroupID($groupID);
+			echo "<--got numbers array-->\n";
+			foreach($objNumberArray as $objNumber) {
+				$tdb->insertToTimeLineTime($threadID, $triggerDate, $objNumber->NumberID,"sent from monitor page as part of group $groupID");    
+			}
+
+                }
+        }
+
+	#triggers from tthread table
 
 
 
@@ -326,6 +374,70 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("</form>");
 
+
+	#SEND thread
+
+	echo("<form action='" . $this_page . "' method='get'>");
+        echo("Send KickOff Thread to a number at a specific Time onto TimeLine: Time in GMT to kick off insert.");
+        echo("<input name='INSERTTIME' size=23 value='$currentDBTime'>");
+
+        echo "<input name='TRIGGER' value='KICKOFFNUMBER' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+	$atID=ActionType::$KickOffActionType;
+                $result = $db->query("SELECT * from Thread where ActionType=$atID");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+
+        echo "</select>";
+	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='AdditionalNumberID'>";
+        
+                $result = $db->query("SELECT * from Number where NumberID>0");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[NumberID]'>$row[id] ($row[NumberDescription])</option>";
+                }
+
+        echo "</select>";
+       echo "<input type='submit' value='trigger at time'>";
+	echo "</form>";
+	echo "<br>";
+
+	echo("<form action='" . $this_page . "' method='get'>");        echo("Send KickOff Thread to a GROUP  at a specific Time onto TimeLine: Time in GMT to kick off insert.");
+        echo("<input name='INSERTTIME' size=23 value='$currentDBTime'>");
+
+        echo "<input name='TRIGGER' value='KICKOFFGROUP' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+        $atID=ActionType::$KickOffActionType;
+                $result = $db->query("SELECT * from Thread where ActionType=$atID");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+         
+        echo "</select>";
+        echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupID'>";
+        
+                $result = $db->query("SELECT * from Groups where GroupID>0");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[GroupID]'>$row[id] ($row[GroupName])</option>";
+                }
+    
+        echo "</select>";
+       echo "<input type='submit' value='trigger at time'>";
+        echo "<br>";
+
+
+	echo("</form>");
+
+	
+
 	#default inbound thread
 	echo("<form>");
 	echo("Set the Default Inbound SMS Thread:");
@@ -391,12 +503,16 @@ echo "<br><br>";
 	$default_stop_time_hour = 23;
 	$default_stop_time_minute = 59;
 	
+	$rownum=0;
 	foreach($rowarray as $row)
 	{
-		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
+		$rowstyle = (++$rownum % 2)==0?"d0":"d1";
 		
 		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td><a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
+
+
+		$insertLink = ($row['ActionType']==ActionType::$KickOffActionType)?"insert":"<a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>";
+		echo "<td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
 		echo "</tr>";
 		$maxID = $row[id];
 

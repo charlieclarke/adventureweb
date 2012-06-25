@@ -89,6 +89,18 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
         }
 
+	if ($crudAction == 'NAMETONUMBER') {
+
+
+		$sql = "update Number set NumberDescription = ? where NumberID = ?";
+		$st = $db->prepare($sql);
+		$name = $_GET['Name'];
+		$numberID = intval($_GET['NumberID']);
+		echo "<!--making numberID $numberID be $name-->\n";
+		$st->execute(array($name, $numberID));
+
+	}
+
 	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADCALL') {
 
                 $sql = "update DefaultInboundThread set ThreadID = ? where Type='CALL'";
@@ -341,8 +353,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	echo("<form action='" . $this_page . "' method='get'>");
-
-	echo("<div class='tableTitle'>List of Threads</div><br><div class='tableDescription' width=250px>This is a list of all Threads available. You can trigger a task, which adds it to a timeline. Use the bottom row to add a new task. You can remove a task, which deletes all instances if that task from the timeline. You can also (be careful) delete the task itself.</div>");
 
 
 	echo("<br><br>");
@@ -627,7 +637,7 @@ echo "<br><br>";
 	echo "<a href='$this_url?secret=$secret_local&GLOBAL=KILL'>Kill TimeLine</a>";
 	echo "&nbsp;&nbsp;<a href='$this_url?secret=$secret_local'>Refresh Page</a>";
 
-	$result = $db->query('select Thread.ThreadDescription,TimeLine.id, TimeLine.AdditionalNumberID, TimeLine.ThreadID, TimeLine.ActivityTime, TimeLine.Completed, TimeLine.CompletedTime, TimeLine.Description, TimeLine.Notes, Thread.ActionType, Thread.mp3Name, Thread.DestNumber, Thread.FrequencyMinutes from TimeLine, Thread where TimeLine.ThreadID = Thread.id order by TimeLine.ActivityTime desc');
+	$result = $db->query("select TimeLine.ActivityTime > datetime('now') as FUTURE, Thread.ThreadDescription,TimeLine.id, TimeLine.AdditionalNumberID, TimeLine.ThreadID, TimeLine.ActivityTime, TimeLine.Completed, TimeLine.CompletedTime, TimeLine.Description, TimeLine.Notes, Thread.ActionType, Thread.mp3Name, Thread.DestNumber, Thread.FrequencyMinutes from TimeLine, Thread where TimeLine.ThreadID = Thread.id order by TimeLine.ActivityTime desc");
 
 
 
@@ -639,13 +649,29 @@ echo "<br><br>";
         $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
         
 	$rownum=0;
+
+	$objAllNumbers = $tdb->getAllPhoneNumbers();
+	$objAllGroups = $tdb->getAllNumberGroups();
+
         foreach($rowarray as $row)
         {
 		$rowstyle = (++$rownum % 2)==0?"d0":"d1";
+		$futstyle = ($rownum % 2)==0?"f0":"f1";
+
+
+		$rowstyle = ($row['FUTURE'] == 0)?$rowstyle:$futstyle;
 		
+
+		if ($row['DestNumber'] != 0) {
+			$the_number = "group: $row[DestNumber] " . $objAllGroups[$row['DestNumber']]->GroupName;
+		} else {
+			$the_number = "number: $row[AdditionalNumberID] " . $objAllNumbers[$row['AdditionalNumberID']]->NumberDescription;
+		
+		}
+
 		echo "<tr class='" .$rowstyle . "'>";
 		$completed=($row[Completed]==1)?'Yes (' . $row[CompletedTime] . ")":'No';
-                echo "<td>$row[id]</td><td>$row[ActivityTime]</td><td>$row[ThreadDescription]</td><td> $row[DestNumber] ($row[AdditionalNumberID])</td><td>$row[mp3Name]</td><td>$completed</td><td>$row[Description]</td>";
+                echo "<td>$row[id]</td><td>$row[ActivityTime]</td><td>$row[ThreadDescription]</td><td> $the_number</td><td>$row[mp3Name]</td><td>$completed</td><td>$row[Description]</td>";
                 echo "</tr>";
         }
         echo("</table>");
@@ -660,11 +686,11 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
 
 
 
-	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number, Thread.mp3Name, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
+	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
 
 
         echo("<table>");
-        echo("<tr><th> </th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Status</th></tr>");
+        echo("<tr><th> </th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Status</th><th>Capture</th></tr>");
         $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 
 	$rownum=1;
@@ -674,7 +700,13 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
                 $inout = ($row[IsOutbound]!=0)?"OUTBOUND":"INBOUND";
 
                 echo "<tr class='" .$rowstyle . "'>";
-                echo "<td>$inout</td><td>$row[TrackTime]</td><td>$row[ThreadDescription]</td><td>$row[Number]</td><td>" . htmlspecialchars($row['mp3Name']) . "</td><td>" . htmlspecialchars( $row['StatusText']) . "</td>";
+		$capture = "";
+		if (preg_match("/unknown/",$row['NumberDescription'],$n)) {
+			if (preg_match("/.*SMS.*:(.*)$/",$row['StatusText'],$matches)) {
+				$capture = "<a href='$this_url?secret=$secret_local&CRUD=NAMETONUMBER&NumberID=$row[TrackNumberID]&Name=" . htmlspecialchars($matches[1]) . "'>" . htmlspecialchars($matches[1]) . "</a>";
+			}
+		}
+                echo "<td>$inout</td><td>$row[TrackTime]</td><td>$row[ThreadDescription]</td><td>$row[Number] $row[NumberDescription]</td><td>" . htmlspecialchars($row['mp3Name']) . "</td><td>" . htmlspecialchars( $row['StatusText']) . "</td><td>$capture</td>";
                 echo "</tr>";
         }
         echo("</table>");

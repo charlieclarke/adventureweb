@@ -484,11 +484,77 @@
                 }
 
 
+		function getAllPhoneNumbers() {
+			echo "<!--get numners by groupID: entered-->\n";
+                        $objNumber = new PhoneNumber;
+                        $numbers = array();
+
+                        $sql = "SELECT Number, NumberID, NumberDescription  FROM Number";
+                        echo "<!--get numners by groupID: sql is $sql-->\n";
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array());
+                        echo "<!--get numners by groupID: sql is finished-->\n";
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $numberID = 0;
+                        $numberDescription='unknown';
+                        // fetch
+                        while($r = $q->fetch()){
+                          $numberID = $r['NumberID'];
+                          $numberDescription = $r['NumberDescription'];
+                                $number = $r['Number'];
+
+                                $objNumber = new PhoneNumber;
+                                $objNumber->NumberID = $numberID;
+                                $objNumber->Number = $number;
+                                $objNumber->NumberDescription = $numberDescription;
+
+                                $numbers[$numberID] = $objNumber;
+
+                        }
+
+                        return $numbers;
+
+                }
+
+		function getAllNumberGroups() {
+                        $groups = array();
+
+                        $sql = "SELECT GroupID, GroupName  FROM Groups";
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array());
+                        echo "<!--get numners by groupID: sql is finished-->\n";
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $groupID = 0;
+                        $groupName='unknown';
+                        // fetch
+                        while($r = $q->fetch()){
+                          $groupID = $r['GroupID'];
+                          $groupName = $r['GroupName'];
+                                $objGroup = new NumberGroup;
+                                $objGroup->GroupID = $groupID;
+                                $objGroup->GroupName = $groupName;
+
+                                $groups[$groupID] = $objGroup;
+
+                        }
+
+                        return $groups;
 
 
+		}
 
 	}
 
+	class NumberGroup {
+
+		public $GroupID;
+		public $GroupName;
+
+	}
 
 	class PhoneNumber {
 		public $NumberID;

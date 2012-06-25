@@ -25,16 +25,23 @@ table, th, td
 
 th {
 
-	background-color: #CC9999; color: black;
+	background-color: #edf3fe; color: black;
+
 }
 
 tr.d0 td {
-	background-color: #CC9999; color: black;
+	background-color: #edf3fe; color: black;
 }
 tr.d1 td {
-	background-color: #9999CC; color: black;
+	background-color: #6492ac; color: black;
 }
 
+tr.f0 td {
+	background-color: #edf3fe; color: black; font-weight:bold;
+}
+tr.f1 td {
+	background-color: #6492ac; color: black;font-weight:bold;
+}
 form {
 
 	font-family: Verdana, serif;
@@ -60,3 +67,158 @@ form {
     float: right;
 	width: 400px;
 }
+
+
+ #Header {
+    background-color: #036;
+  }
+
+  #Header h1 {
+    color: #fc0;
+  }
+
+  #Header h1 a:link, #Header h1 a:visited {
+    color: #fc0;
+    text-decoration: none;
+  }
+
+  #Header h1 a:hover {
+    color: #fc0;
+    background-color: #036;
+    text-decoration: underline;
+  }
+
+  #Header h1 span {
+    color: #fff;
+  }
+
+
+#Tabs li {
+
+margin:0;
+
+padding:0;
+
+display:inline;
+
+list-style:none;
+
+border:none
+
+}
+
+#Tabs a:hover 
+
+{
+
+color: #ffffff;
+
+background-color: #333333;
+
+background-image: none;
+
+background-repeat: repeat;
+
+background-attachment: scroll;
+
+background-position: 0% 0%;
+
+background-clip: border-box;
+
+background-origin: padding-box;
+
+background-size: auto auto;
+
+}
+
+div#Tabs a:link, div#Tabs a:visited 
+
+{
+
+}
+
+#Tabs ul#MainTabs a:link, #Tabs ul#MainTabs a:visited
+
+{
+
+float: left;
+
+font-size: 12px;
+
+line-height: 12px;
+
+font-weight: normal;
+
+padding-top: 5px;
+
+padding-right: 9px;
+
+padding-bottom: 7px;
+
+padding-left: 9px;
+
+margin-top: 0pt;
+
+margin-right: 1px;
+
+margin-bottom: 0pt;
+
+margin-left: 1px;
+
+}
+
+#Tabs 
+
+{
+
+margin-top: 0pt;
+
+margin-right: 57px;
+
+margin-bottom: 0pt;
+
+margin-left: 30px;
+
+padding-top: 0pt;
+
+padding-right: 0pt;
+
+padding-bottom: 0pt;
+
+padding-left: 0pt;
+
+height: 24px;
+
+}
+
+ #Tabs a:link, #Tabs a:visited {
+    background-color: #1A4F85;
+    color: #fff;
+
+  }
+
+  #Tabs ul#MainTabs a:link.current, #Tabs ul#MainTabs a:visited.current,
+  .Right #categories a.current:link, .Right #categories a.current:visited {
+    color: #090;
+  }
+
+  #Tabs a:hover {
+    color: #fff;
+    background-color: #1D64AD;
+  }
+
+  #Tabs li#AdminTab a:link, #Tabs li#AdminTab a:visited {
+    color: #fff;
+    background-color: #036;
+    border-bottom: 1px solid #036;
+    text-decoration: underline;
+  }
+
+  #Tabs li#AdminTab a:hover {
+    color: #fc0;
+  }
+
+  #Tabs li#AdminTab a.current {
+    color: #fc0;
+    text-decoration: none;
+  }

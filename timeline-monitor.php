@@ -135,6 +135,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		$newChildThreadID = implode(',',$newChildThreadID_list);
 
+
+		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9_ %\[\]\.\(\)%&-]/s', '', $newThreadMp3);
+
 		if ($newChildThreadID == "") {
 			$newChildThreadID = 0;
 		}

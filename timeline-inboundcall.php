@@ -42,7 +42,8 @@
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 
-	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID -->";
+	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID -->\n";
+	echo "<!-- the mp3server is $mp3Server -->\n";
 	#get the DEFAULT thread
 	
         $defaultThreadID = $tdb->getDefaultThreadID('CALL');
@@ -166,14 +167,16 @@ function do_thread_action($objThread, $objInboundNumber) {
 	global $todoxml;
 	global $inboundMp3Action;
 	global $inboundTextAction;
+	global $mp3Server;
 	
 	$ofInterest = 0;
 	$actionTypeID = $objThread->ActionTypeID;
 	$mp3Name = $objThread->mp3Name;
 
 	echo("<!--doing action: $mp3Name aciton type $actionTypeID ($inboundMp3Action)($inboundTextAction)-->\n");
+	echo("<!--mp3 server is $mp3Server-->\n");
 	if ($actionTypeID == $inboundMp3Action) {
-		$todoxml = $todoxml . "<Play>$mp3Server$mp3Name</Play>";
+		$todoxml = $todoxml . "<Play>$mp3Server" . "$mp3Name</Play>";
 		$ofInterest = 1;
 		echo "<!--threadID $objThread->ThreadID is of interest inbound mp3-->\n" ;
 	} else if ($actionTypeID == $inboundTextAction) {

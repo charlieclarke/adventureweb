@@ -328,7 +328,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo, DATETIME('now') as CurrentDBTime FROM HeartBeat where HeartBeatName='LastTimeLine'");
 
 	echo "<!--got heartbeat --!>";
+	echo "<!--got heartbeat2 --!>";
         $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
 
 	echo "<!--got heartbeat 2--!>";
 	$lastHeartBeat = 'never';

@@ -4,3 +4,5 @@
 #sqllite database - needs to be created with dbsetup locally
 *.db
 
+test.php
+

@@ -518,6 +518,79 @@
 
                 }
 
+		function registerSIMDevice($codename){
+			//codename needs to match a number description in the PhoneNumber table.
+			//if not unique, will choose the first one ordered by numberID
+			//then adds into the SIMNumberMap table (if needed deletes first)
+			//adds in a GUID and returns the GUID/
+			//TODO - add in logic for names not existing, names already registered etc. etc.
+
+			$guid = exec("openssl rand -hex 16");
+
+			$objNumber = $this->getPhoneNumberByDescription($codename);
+
+			$sql = "DELETE from SIMNumberMap where NumberID = ?";
+			$st = $this->db->prepare($sql);
+                        $st->execute(array($objNumber->NumberID));
+
+
+			$sql = "INSERT into SIMNumberMap (NumberID, GUID) values(?,?)";
+			$st = $this->db->prepare($sql);
+                        $st->execute(array($objNumber->NumberID,$guid));
+
+			return $guid;
+		}
+		function retrieveSIMGuid($codename) {
+
+			$guid = "not found";
+			$objNumber = new PhoneNumber;
+			//$objNumber = getPhoneNumberByDescription("STONED");
+			$objNumber = $this->getPhoneNumberByDescription($codename);
+			$sql = "SELECT GUID from SIMNumberMap where NumberID = ?";
+
+
+			$q = $this->db->prepare($sql);
+                        $q->execute(array($objNumber->NumberID));
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+                        // fetch
+
+                        while($r = $q->fetch()){
+                          $guid = $r['GUID'];
+                        }
+
+                        return $guid;
+
+			
+
+		}
+
+		function getPhoneNumberByDescription($description) {
+			$objNumber = new PhoneNumber;
+
+			$sql = "SELECT NumberID, Number, NumberDescription  FROM Number  WHERE NumberDescription = ? ORDER BY NumberID LIMIT 1";
+			$q = $this->db->prepare($sql);
+			$q->execute(array($description));
+
+			$q->setFetchMode(PDO::FETCH_BOTH);
+
+			$numberID = 0;
+			$numberDescription='unknown';
+			// fetch
+			while($r = $q->fetch()){
+			  $numberID = $r['NumberID'];
+			  $numberDescription = $r['NumberDescription'];
+			  $number = $r['Number'];
+			}
+
+			$objNumber->NumberID = $numberID;
+			$objNumber->Number = $number;
+			$objNumber->NumberDescription = $numberDescription;
+
+			return $objNumber;
+
+		}
+
 		function getAllNumberGroups() {
                         $groups = array();
 
@@ -561,6 +634,8 @@
 		public $Number;
 		public $NumberDescription;
 	}
+
+
 	class Thread {
 		public $ThreadID;
 		public $ThreadDescription;

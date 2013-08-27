@@ -141,10 +141,10 @@ function handle_children($objThread,$objInboundNumber) {
 				$gather_pre = "<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$objThread->ThreadID&amp;ThreadID=$childID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$objInboundNumber->NumberID\">";
 				$gather_post = "</Gather>";
 			} else {
-				$freq = $objChildThread->FrequencyMinutes;
+				$freq = $objChildThread->Frequency;
 				echo("<!-- child freq is " . $freq . "-->");
 
-				$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,"inserted as child of call thread $objThread->ThreadID");
+				$tdb->insertToTimeLineOffset($childID, $freq, $objInboundNumber->NumberID,"inserted as child of call thread $objThread->ThreadID with freq $freq");
 			}
 		}
 	}

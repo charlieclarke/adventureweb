@@ -105,7 +105,7 @@
 
 
 	#now add to calltrack, do children
-	$callTrackID = $tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '');
+	$callTrackID = $tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', 'inbound call answered', '','');
 	#deal with children
 	handle_children($objMatchThread,$objInboundNumber);
 

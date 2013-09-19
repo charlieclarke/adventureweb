@@ -125,12 +125,12 @@
 
 		}
 
-		function insertIntoCallTrack($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails) {
+		function insertIntoCallTrack($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails,$raw) {
 			#inserts into the calltrack, and returns the callTrackID
 
-			$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails ) values (?,?,?,DATETIME('now'),?,0,?,?)";
+			$sql = "INSERT INTO CallTrack (IsOutbound , ThreadID, TrackNumberID, TrackTime , TwilioID , TwilioFollowup , StatusText, InboundDetails,RawText ) values (?,?,?,DATETIME('now'),?,0,?,?,?)";
 			$qq = $this->db->prepare($sql);
-			$qq->execute(array($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails));
+			$qq->execute(array($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails,$raw));
 			#now get the calLTrackID
 
 			$sql = "SELECT TrackID from CallTrack where TrackNumberID = ?";
@@ -236,7 +236,8 @@
 		function getThreadsByPhoneNumberID($numberID) {
 			#returns an array of Thread objects for threads which can react to $numberID
 			#at the moment does NOT filter on time - this is a TODO
-			 $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, Groups, Number, GroupNumber, TNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.NumberID = ? and Thread.TNumberID = TNumber.TNumberID  order by Thread.FrequencyMinutes";
+			#however - changed on 17th sept 2013 - this now filters on Active
+			 $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, Groups, Number, GroupNumber, TNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.NumberID = ? and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
 
 			echo("<!--exec sql " . $sql . "-->");
 			$q = $this->db->prepare($sql);
@@ -282,7 +283,7 @@
 		function getThreadsByNumberGroupID($groupID) {
                         #returns an array of Thread objects for threads which can react to $numberID
                         #at the moment does NOT filter on time - this is a TODO
-                         $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread,  TNumber where Thread.DestNumber = ?  and Thread.TNumberID = TNumber.TNumberID  order by Thread.FrequencyMinutes";
+                         $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread,  TNumber where Thread.DestNumber = ?  and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
 
                         echo("<!--exec sql " . $sql . "-->");
                         $q = $this->db->prepare($sql);
@@ -528,17 +529,22 @@
 			$guid = exec("openssl rand -hex 16");
 
 			$objNumber = $this->getPhoneNumberByDescription($codename);
+			if ($objNumber->NumberID > 0) {
+				//we have an existing number...
 
-			$sql = "DELETE from SIMNumberMap where NumberID = ?";
-			$st = $this->db->prepare($sql);
-                        $st->execute(array($objNumber->NumberID));
+				$sql = "DELETE from SIMNumberMap where NumberID = ?";
+				$st = $this->db->prepare($sql);
+				$st->execute(array($objNumber->NumberID));
 
 
-			$sql = "INSERT into SIMNumberMap (NumberID, GUID) values(?,?)";
-			$st = $this->db->prepare($sql);
-                        $st->execute(array($objNumber->NumberID,$guid));
+				$sql = "INSERT into SIMNumberMap (NumberID, GUID) values(?,?)";
+				$st = $this->db->prepare($sql);
+				$st->execute(array($objNumber->NumberID,$guid));
 
-			return $guid;
+				return $guid;
+			} else {
+				return "";
+			}
 		}
 		function retrieveSIMGuid($codename) {
 
@@ -591,6 +597,39 @@
 
 		}
 
+		function getPhoneNumberByGuid($guid) {
+			echo"<!-- in getPhoneNumberByGuid -->";
+			$objNumber = new PhoneNumber;
+			echo"<!-- in getPhoneNumberByGuid guid is $guid -->";
+
+                        $sql = "SELECT Number.NumberID as NumberID, Number.Number AS Number, Number.NumberDescription AS NumberDescription  FROM Number, SIMNumberMap  WHERE GUID = ? and Number.NumberID = SIMNumberMap.NumberID ORDER BY Number.NumberID LIMIT 1"; 
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array($guid));
+
+			echo"<!-- in getPhoneNumberByGuid: finished sql -->";
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $numberID = 0;
+                        $numberDescription='unknown';
+			$number='';
+                        // fetch
+                        while($r = $q->fetch()){
+			echo"<!-- get number by guid: in sql loop-->";
+                          $numberID = $r['NumberID'];
+                          $numberDescription = $r['NumberDescription'];
+                          $number = $r['Number'];
+                        }
+
+			echo"<!-- finished sql loop-->";
+                        $objNumber->NumberID = $numberID;
+                        $objNumber->Number = $number;
+                        $objNumber->NumberDescription = $numberDescription;
+
+                        return $objNumber;
+
+                }
+
+
 		function getAllNumberGroups() {
                         $groups = array();
 
@@ -619,7 +658,150 @@
 
 
 		}
+	
+		function sendSIMMessage($dstNumberID, $msgTxt) {
 
+			$sql = "INSERT INTO SIMMessage (DstNumberID,SIMTime, SIMText, SIMIsRcvd, SIMIsOutbound ) values (?,DATETIME('now'), ?,0,1)";
+			
+			$st = $this->db->prepare($sql);
+                        $st->execute(array($dstNumberID, $msgTxt));
+			
+
+
+		}
+		function markSIMMessageRcvd($SIMID, $guid) {
+
+			//first make sure the GUID matches the phonenumber
+
+                        echo "<!-- in markrcvd - working with guid of $guid-->";
+
+                        $messageArray = array();
+
+                        $matchedNumber = $this->getPhoneNumberByGuid($guid);
+
+			echo "<!-- get messages got a number $matchedNumber->NumberID compare with $numberID-->";
+			$numberID = $matchedNumber->NumberID;
+                        if ($matchedNumber->NumberID == 0) {
+                                #do nothing - messageArray remains empty
+
+                                echo "<!-- so doing nothing...-->";
+                        } else {
+                                echo "<!-- got valid GUID etc...-->";
+
+				//only update the message if it is owned by this numberID...
+
+				$sql = "UPDATE SIMMEssage set SIMIsRcvd = 1 where SIMID=? and DstNumberID = ?";
+
+				$q = $this->db->prepare($sql);
+                                echo "<!-- sql now prepared calling with $numberID...-->";
+                                $q->execute(array($SIMID,$numberID));
+
+				
+
+			}
+
+		}
+
+		
+		function supressSIMMessages($numberID, $guid,$except) {
+                        //first make sure the GUID matches the phonenumber
+			//suppress all messages apart fom the most recent except...
+
+                        echo "<!-- in supress messages - working with guid of $guid-->";
+
+                        $messageArray = array();
+
+                        $matchedNumber = $this->getPhoneNumberByGuid($guid);
+
+                echo "<!-- supress messages got a number $matchedNumber->NumberID compare with $numberID-->";
+                        if ($matchedNumber->NumberID != $numberID || $numberID == 0) {
+                                #do nothing - messageArray remains empty
+
+                                echo "<!-- so doing nothing...-->";
+                        } else {
+
+                                echo "<!-- executing sql to get messagfes...-->";
+				$sql = "UPDATE SIMMessage set SIMIsSupressed = 1 where DstNumberID = ? and SIMID not in (select SIMID from SIMMessage where DstNumberID = ? order by SIMID desc LIMIT ?)";
+
+				$q = $this->db->prepare($sql);
+                                echo "<!-- sql now prepared calling with $numberID...-->";
+                                $q->execute(array($numberID,$numberID, $except));
+			}
+		}
+
+	
+
+		function getSIMMessages($numberID, $guid,$sow) {
+			//all = 1 is SoW - gets all messages in rcvd or not
+			//all-0 only gets the rcvd ones.
+			//first make sure the GUID matches the phonenumber
+
+			echo "<!-- in get messages - working with guid of $guid-->";
+
+			$messageArray = array();
+			
+			$matchedNumber = $this->getPhoneNumberByGuid($guid);
+
+		echo "<!-- get messages SOW = $sow got a number $matchedNumber->NumberID compare with $numberID-->";
+			if ($matchedNumber->NumberID != $numberID || $numberID == 0) {
+				#do nothing - messageArray remains empty
+
+				echo "<!-- so doing nothing...-->";
+			} else {
+
+				echo "<!-- executing sql to get messagfes...-->";
+				if ($sow == 0) {
+					$sql = "SELECT SIMID, DstNumberID,SIMTime, SIMText, SIMIsRcvd, SIMIsOutbound FROM SIMMessage where SIMIsRcvd=0 AND SIMIsOutbound = 1 and SIMIsSupressed = 0 and DstNumberID = ? order by SIMID";
+				} else {
+
+					$sql = "SELECT SIMID, DstNumberID,SIMTime, SIMText, SIMIsRcvd, SIMIsOutbound FROM SIMMessage where SIMIsOutbound = 1 and SIMIsSupressed = 0  and DstNumberID = ? order by SIMID";
+				}
+				echo "<!-- sql is $sql...-->";
+				$q = $this->db->prepare($sql);
+				echo "<!-- sql now prepared calling with $numberID...-->";
+				$q->execute(array($numberID));
+
+				echo "<!-- sql now execed...-->";
+				$q->setFetchMode(PDO::FETCH_BOTH);
+
+				// fetch
+				while($r = $q->fetch()){
+				echo"<!--in sql loop-->";
+					$simID = $r['SIMID'];
+					$dstNumberID = $r['DstNumberID'];
+					$simTime = $r['SIMTime'];
+					$simIsReceived = $r['SIMIsRcvd'];
+					$simIsOutbound = $r['SIMIsOutbound'];
+					$simText = $r['SIMText'];
+
+					$objSIM = new SIMMessage;
+					$objSIM->SIMID = $simID;
+					$objSIM->DstNumberID = $dstNumberID;
+					$objSIM->SIMTime = $simTime;
+					$objSIM->SIMTxt = $simText;
+					$objSIM->SIMIsReceived = $simIsReceived;
+					$objSIM->SIMIsOutbound = $simIsOutbound;
+
+					$messageArray[] = $objSIM;
+
+				}
+
+			}
+			echo "<!-- now at end of getSIMMessages-->";
+			return $messageArray;
+
+
+		}
+
+	}
+
+	class SIMMessage {
+		public $SIMID;
+		public $DstNumberID;
+		public $SIMTime;
+		public $SIMTxt;
+		public $SIMIsReceived;
+		public $SIMIsOutbound;
 	}
 
 	class NumberGroup {
@@ -661,6 +843,7 @@
 		public static $InboundSMSAction = 9;
 		public static $DialToneActionType=10;
 		public static $KickOffActionType=11;
+		public static $InboundSIMAction = 13;
 	}
 
 	class HeartBeat {

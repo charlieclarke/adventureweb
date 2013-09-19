@@ -1,7 +1,7 @@
 <html>
 <head>
 <link rel='stylesheet' type='text/css' href='default.css' />
-<title>call monitoring page</title>
+<title>bulk user management</title>
 </head>
 <body>
 <?php
@@ -96,17 +96,32 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         }
 
 		
-	if ($crudAction == 'CREATENUMBER') {
-		$newNumber = $_GET["NewNumber"];
-		$newNumberDescription = $_GET["NewNumberDescription"];
+	if ($crudAction == 'CREATEBULKNUMBER') {
+		$newNumberDescriptions = $_GET["NewNumberDescription"];
+		$GroupNumberID = $_GET["GroupNumberID"];
 
 
-		$newNumber = preg_replace('/\s+/', '', $newNumber);
+		$descArray = preg_split('#\s+#', $newNumberDescriptions, null, PREG_SPLIT_NO_EMPTY);
 
-		$sql = "INSERT INTO Number (Number, NumberDescription) values (?,?)";
 
+		$newNumber = '00';
+
+
+		foreach($descArray as $desc) {
+
+		$sql = "DELETE from GroupNumber where GNNumberID in (select  NumberID from Number where NumberDescription=?)";
 		$st = $db->prepare($sql);
-		$st->execute(array($newNumber,$newNumberDescription));
+		$st->execute(array($desc));
+		$sql = "DELETE from Number where NumberDescription=?";
+		$st = $db->prepare($sql);
+		$st->execute(array($desc));
+		$sql = "INSERT INTO Number (Number, NumberDescription) values (?,?)";
+		$st = $db->prepare($sql);
+		$st->execute(array($newNumber,$desc));
+		$sql = "INSERT INTO GroupNumber (GNNumberID, GNGroupID ) select NumberID, ? from Number where NumberDescription=?";
+		$st = $db->prepare($sql);
+		$st->execute(array($GroupNumberID,$desc));
+		}
 
 	}
 	if ($crudAction == 'DELETENUMBER') {
@@ -291,113 +306,34 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo("</div>"); #end of the number mgmt div
 
 
-	echo("<div class='tableTitle'>Group Management</div><br><div class='tableDescription' width=250px>Here we can manage groups.</div><br>");
+	echo("<div class='tableTitle'>BULK UPLOAD</div><br><div class='tableDescription' width=250px>Here we can do a bulk uplaod of agent names</div><br>");
 
-	$result = $db->query('select * from Groups where GroupID > 0');
-
-
+	echo("<div>");
 
 
 	 echo("<form action='" . $this_page . "' method='get'>");
-	echo("<table>");
-	echo("<tr><th>GroupName</th><th></th></tr>");
 	
-	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-        foreach($rowarray as $row)
-        {
-		$rowstyle = ($row[GroupID] % 2)==0?"d0":"d1";
-		$currentDisplayGroup = $row['GroupID'];
-		
-		echo "<tr class='" .$rowstyle . "'>";
+	echo "<input type='hidden' name='CRUD' value='CREATEBULKNUMBER'/>";
+	echo("<textarea name='NewNumberDescription' id ='NewNumberDescription' rows='20' cols='30'>s</textarea>");
+	echo "<input type='submit' name='go' value='go'/>";
+	//draw the drop down of which group we want to add all these into...
+	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupNumberID'>";
 
-		if ($updateGroupID > 0) {
-			if ($currentDisplayGroup == $updateGroupID) {
-				#show edit box
-				echo "<input type='hidden' name='UpdateGroupID' value='" . $updateGroupID . "'/>";
-				echo "<td><input type='text' size=20 name='UpdateGroupName' value='$row[GroupName]'/></td>";
-				echo "<td><input type='submit' name='Update' value='ok' />";
+                $numberresult = $db->query("SELECT * from Groups where GroupID > 0");
+                $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
+                foreach($numberarray as $numberrow) {
 
-				echo "<input type='hidden' name='CRUD' value='UPDATEGROUP'/>";
+                        echo "<option value='$numberrow[GroupID]'>$numberrow[GroupName]</option>";
+                }
 
-				
+        echo "</select>";
 
-			} else {
-				#show row without crud
-				echo "<td>$row[GroupName]</td><td>-</td>";
-	
-			}
-		} else {
-			#show row with crud
-			echo "<td>$row[GroupName]</td><td><a href='$this_url?secret=$secret_local&CRUD=EDITGROUP&GroupID=$row[GroupID]'>edit</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETEGROUP&GroupID=$row[GroupID]'>delete</a></td>";
-		}
-                echo "</tr>";
-        }
-	if ($updateGroupID == 0) {
-		echo "<input type='hidden' name='CRUD' value='CREATEGROUP'/>";
-		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td><input type='text' size=20 name='NewGroupName' value='your group name'/></td>";
-		echo "<td><input type='submit' name='Add' value='Add' />";
-		echo "</tr>";
-	}
-	echo "</table>";
+
 	echo "</form>";
 
 
 	echo("</div>"); #end of the group mgmt div
 	
-	echo("<div class='tableTitle'>Group Membership</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
-
-        $groupresult = $db->query('select * from Groups where GroupID > 0' );
-
-
-        echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
-
-
-        $grouparray = $groupresult->fetchall(PDO::FETCH_ASSOC);
-	 foreach($grouparray as $group)
-        {
-        echo("<form action='" . $this_page . "' method='get'>");
-                $groupName = $group['GroupName'];
-                $groupID = $group['GroupID'];
-
-		echo("<div class='tableDescription' width=250px>" . $groupName . "</div><br>");
-
-		#add number to group.
-	
-		echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='ADDNUMBERTOGROUP'>";
-
-                $numberresult = $db->query("SELECT * from Number where NumberID not in (select GNNumberID from GroupNumber where GNGroupID = " . $groupID . ") and NumberID > 0");
-                $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
-                foreach($numberarray as $numberrow) {
-
-                        echo "<option value='$numberrow[NumberID]_$groupID'>$numberrow[NumberDescription] ($numberrow[Number])</option>";
-                }
-
-        echo "</select><input id='submit$groupID' type='submit' value='add'>";
-
-		$result = $db->query("select * from Number, GroupNumber where GroupNumber.GNNumberID = Number.NumberID and GNGroupID = " . $groupID );
-
-		echo("<table>");
-		echo("<tr><th>Number</th><th>Description</th><th></th></tr>");
-
-		$rownum = 0;
-		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-		foreach($rowarray as $row)
-		{
-			$rowstyle = ($rownum++ % 2)==0?"d0":"d1";
-			$currentDisplayNumber = $row['NumberID'];
-
-			echo "<tr class='" .$rowstyle . "'>";
-
-			echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td><a href='$this_url?secret=$secret_local&CRUD=DELETENUMBERFROMGROUP&GroupNumberID=$row[GroupNumberID]'>remove</a></td>";
-			echo "</tr>";
-		}
-		echo "</table>";
-		echo "</form>";
-
-
-	} 
-	echo("</div>");
 	echo("<div id='right' style='display: inline;float: left;'>");
 
 	echo("<div class='tableTitle'>STASH</div><br><div class='tableDescription' width=250px>Here we can see any stashed info.</div><br>");

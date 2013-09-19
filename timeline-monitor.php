@@ -89,6 +89,14 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
         }
 
+	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADSIM') {
+
+                $sql = "update DefaultInboundThread set ThreadID = ? where Type='SIM'";
+
+                $st = $db->prepare($sql);
+                $st->execute(array($threadID));
+
+        }
 	if ($crudAction == 'NAMETONUMBER') {
 
 
@@ -156,22 +164,58 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newChildThreadID = implode(',',$newChildThreadID_list);
 
 
-		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9_ %\[\]\.\(\)%&-]/s', '', $newThreadMp3);
+		#removing < and >  input validation - and also doing output encoding when rendering.
+		#this is so we can have HTML in the questions...
+		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9_ %\[\]\.\(\)%&-<>]/s', '', $newThreadMp3);
 
 		if ($newChildThreadID == "") {
 			$newChildThreadID = 0;
 		}
 
+		if ($newTNumberID > 0) {
 
-		 $sql = "DELETE FROM Thread where id = ?"; 
+			 $sql = "DELETE FROM Thread where id = ?"; 
 
-		$st = $db->prepare($sql);
-		$st->execute(array($newThreadID));
+			$st = $db->prepare($sql);
+			$st->execute(array($newThreadID));
 
-		$sql = "INSERT INTO Thread (id, TNumberID, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute) values (?,?,?,?,?,?,?,?,?,?,?,?)";
+			$sql = "INSERT INTO Thread (id, TNumberID, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
-		$st = $db->prepare($sql);
-		$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute));
+			$st = $db->prepare($sql);
+			$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute));
+		} else {
+			#not a new thread - actualy making them active or inactive.
+
+			$activeIDs = $_GET['active_grp'];
+			  if(empty($activeIDs))
+			  {
+			    echo("You didn't select any active ones.");
+			  } 
+			  else
+			  {
+			    $N = count($activeIDs);
+				$sep="";
+				$list = "(";
+				foreach($activeIDs as $aid){
+					if (preg_match("/active_(\d+)/",$aid,$matches) > 0) {
+					$list = $list . $sep . $matches[1];
+					$sep = ",";
+
+					}
+			 
+				}
+				$list = $list . ")";
+
+				echo("You selected $N ids: $list ");
+				$sql = "update Thread set Active = 1 where ID in " . $list;
+				$st = $db->prepare($sql);
+				$st->execute();
+				$sql = "update Thread set Active = 0 where ID not in " . $list;
+				$st = $db->prepare($sql);
+				$st->execute();
+			}
+
+		}
 
 	}
 	if ($crudAction == 'DELETETHREAD') {
@@ -353,7 +397,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	#render page
 
 	#top menu bar
-	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-twilio.php>Manage Twilio Account</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-twilio.php>Manage Twilio Account</a>&nbsp;|&nbsp;<a href=$base_url/timeline-bulk.php>Manage Bulk Agents</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
 	echo("<br><br>");
 
 
@@ -499,18 +543,38 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
         echo "</form>";
 	
+	echo("<form>");
+        echo("Set the Default Inbound SIM / Web Thread:");
+        echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSIM' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
+
+                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='SIM')");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
+                }
+                $result = $db->query("SELECT * from Thread");
+                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+                foreach($rowarray as $row) {
+
+                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
+                }
+
+        echo "</select><input type='submit' value='set'>";
+
+        echo "</form>";
 
 	echo "<form action='" . $this_page . "' method='get'><table>";
 
 	$result = $db->query('SELECT * FROM Thread,Action, Groups, TNumber where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID and Thread.TNumberID = TNumber.TNumberID');
-	echo("<tr><th>ID</th><th>Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
+	echo("<tr><th>Active</th><th>ID</th><th>Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
 echo "<br><br>";
 	
 	$default_thread_description='thread description';
 	$default_action_type=1;
-	$default_twilio_number=1;
+	$default_twilio_number=0;
 	$default_group_id = 0;
 	$default_mp3_name = 'mp3 name / text';
 	$default_frequency_minutes = 0;
@@ -528,9 +592,14 @@ echo "<br><br>";
 		
 		echo "<tr class='" .$rowstyle . "'>";
 
+		$checked = $row['Active'] == 1?'checked':'';
 
+		$checkboxcode = "<input type='checkbox' name='active_grp[]' value='active_$row[id]' $checked/>";
+
+
+		$encodedMP3Name = htmlspecialchars($row['mp3Name']);
 		$insertLink = ($row['ActionType']==ActionType::$KickOffActionType)?"insert":"<a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>";
-		echo "<td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$row[mp3Name]</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
+		echo "<td>$checkboxcode</td><td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$encodedMP3Name</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
 		echo "</tr>";
 		$maxID = $row[id];
 
@@ -565,12 +634,14 @@ echo "<br><br>";
 	echo "<tr class='" .$rowstyle . "'>";
 	echo "<input type='hidden' name='CRUD' value='CREATETHREAD'/>";
 	echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
-	echo "<td><input type='text' size=2 name='NewThreadID' value='$new_thread_id'/></td>";
+	echo "<td></td><td><input type='text' size=2 name='NewThreadID' value='$new_thread_id'/></td>";
 
 
 
 	echo "<td><select name='NewTNumberID'>";
 
+		$selected = (0 == $default_twilio_number)?'selected':'';
+		echo "<option $selected value='0'>Choose a Number</option>";
                 $result = $db->query("SELECT * from TNumber");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {

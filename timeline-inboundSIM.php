@@ -2,11 +2,14 @@
 	
     header("content-type: text/xml");
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    // make an associative array of callers we know, indexed by phone number
-    // if the caller is known, then greet them by name
-    // otherwise, consider them just another monkey
+    // here we are going to recieve a SIM message from the mobile client
+	//and process it the same way we handle an inbound SMS
+
     $inboundnumber = $_REQUEST['From'];
     $smsMessageBody = $_REQUEST['Body'];
+$inboundGUID = $_REQUEST['GUID'];
+$guidCookie = $_COOKIE["SIMCOOKIE"];
+
 
 	$twilionumber = $_REQUEST['To'];
 
@@ -38,15 +41,32 @@
 	$inboundMp3Action = 6;
 	$inboundTextAction = 5;
 	$inboundSMSAction = 9;
+	$inboundSIMAction = 13;
 	#see if we can find the number
 
+	#bad security but good testing
+	$guidCookie = $inboundGUID;
 
-	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
+	echo("<!--got guidCookie $guidCookie-->\n");
+	if ($guidCookie == $inboundGUID) {
+		//we have at least the correct cookie.
+		//lets get the number
+
+		$objInboundNumber= $tdb->getPhoneNumberByGuid($guidCookie);	
+		echo("<!--got inboundNumber $objInboundNumber->NumberID-->\n");
+
+
+	} else {
+		exit("unknown inbound number");
+	}
+	//$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
+	echo("<!--got twilionumber of  $objTwilioNumber->TwilioNumberID-->\n");
+	echo"<!-- got SMS message of $smsMessageBody-->\n";
 	#get the DEFAULT thread
 	
-	$defaultThreadID = $tdb->getDefaultThreadID('SMS');
+	$defaultThreadID = $tdb->getDefaultThreadID('SIM');
 
 
 	#see if there are any inbound threads associated with this number
@@ -75,13 +95,13 @@
 		if (!empty($objThread->mp3Name)) {
 			echo("<!-- got threadID of $objThread->ThreadID -->"); 
 
-			$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+			$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SIM: $smsMessageBody",$objTwilioNumber);
 
 			if ($ofInterest > 0) {
 				#then at least one thread matched, so we go forward
 				$defaultThreadID = 0;
 				$objMatchThread = $objThread;
-				$note = "SMS filter match";
+				$note = "SIM filter match";
 			}
 		}
 
@@ -94,13 +114,13 @@
 			if (empty($objThread->mp3Name)) {
 				echo("<!-- got threadID of $objThread->ThreadID -->");
 
-				$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+				$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SIM: $smsMessageBody",$objTwilioNumber);
 
 				if ($ofInterest > 0) {
 					#then at least one thread matched, so we go forward
 					$defaultThreadID = 0;
 					$objMatchThread = $objThread;
-					$note = "SMS number match";
+					$note = "SIM number match";
 					echo "<!--matched blank number group behaviour-->";
 				}
 	
@@ -129,13 +149,13 @@
                         if (!empty($objThread->mp3Name)) {
 				echo("<!--trying to match $smsMessageBody to $objThread->mp3Name-->\n");
 
-                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SIM: $smsMessageBody",$objTwilioNumber);
         
                                 if ($ofInterest > 0) {
                                         #then at least one thread matched, so we go forward
                                         $defaultThreadID = 0;
                                         $objMatchThread = $objThread;
-					$note = "SMS filter match - null group";
+					$note = "SIM filter match - null group";
                                 }
                         }
 
@@ -155,13 +175,13 @@
                 foreach($objThreadsArray as $objThread) {
                         if (empty($objThread->mp3Name)) {
 
-                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+                                $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SIM: $smsMessageBody",$objTwilioNumber);
 
                                 if ($ofInterest > 0) {
                                         #then at least one thread matched, so we go forward 
                                        $defaultThreadID = 0;
                                         $objMatchThread = $objThread;
-					$note = "SMS number match - null group";
+					$note = "SIM number match - null group";
                                 }
                         }
 
@@ -175,7 +195,7 @@
 	#AND NOW DEFAULT
 	if ($defaultThreadID > 0) {
 		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
-			$note="SMS default behaviour";
+			$note="SIM default behaviour";
 	}
 
 	#deal with children
@@ -218,7 +238,7 @@ function deal_with_children($objThread, $objNumber) {
 
 
 			echo("<!-- child freq is " . $freq . "-->");
-			$tdb->insertToTimeLineOffset($objChildThread->ThreadID, $freq, $objNumber->NumberID,'inserted on SMS') ;
+			$tdb->insertToTimeLineOffset($objChildThread->ThreadID, $freq, $objNumber->NumberID,'inserted on SIM') ;
 
 
 		}
@@ -236,9 +256,9 @@ function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwili
 
 	$ofInterest=0;
 	$threadID = 0;
-	if ($objThread->ActionTypeID == ActionType::$InboundSMSAction  && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
+	if ($objThread->ActionTypeID == ActionType::$InboundSIMAction  && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
 
-		echo"<!-- found matching inbound SMS action $objThread->ThreadID with mp3 $objThread->mp3Name on $objTwilioNumber->TwilioNumberName  -->";
+		echo"<!-- found matching inbound SIM action $objThread->ThreadID with mp3 $objThread->mp3Name on $objTwilioNumber->TwilioNumberName  -->";
 		#if the content of the text matches the mp3name field - OR the mp3name is blank, kick off the children.
 
 		#this is a TODO...

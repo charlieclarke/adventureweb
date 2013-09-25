@@ -285,8 +285,23 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
 
 	echo("<table>");
-	echo("<tr><th>Number</th><th>Description</th><th></th></tr>");
+	echo("<tr><th>Number</th><th>Description</th><th><input type='checkbox' id='s' onclick=\"toggle(document.getElementById('s'));\"/></th></tr>");
 	
+?>
+
+<script>
+	
+function toggle(source) {
+  checkboxes = document.getElementsByName('number_grp[]');
+  for(var i=0, n=checkboxes.length;i<n;i++) {
+    checkboxes[i].checked = source.checked;
+  }
+}
+</script>
+
+
+
+<?php
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
         foreach($rowarray as $row)
         {

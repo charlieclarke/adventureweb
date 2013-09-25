@@ -124,6 +124,33 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		}
 
 	}
+	if ($crudAction == 'BULKGROUP') {
+                $GroupNumberID = $_GET["GroupNumberID"];
+
+
+
+
+		 $numberIDs = $_GET['number_grp'];
+
+
+                foreach($numberIDs as $num) {
+			echo("adding $num");
+		
+			if (preg_match("/active_(\d+)/",$num,$matches) > 0) {
+				$numID = $matches[1];
+
+				$sql = "DELETE from GroupNumber where GNNumberID = ? and GNGroupID = ?";
+				$st = $db->prepare($sql);
+				$st->execute(array($numID, $GroupNumberID));
+				$sql = "INSERT INTO GroupNumber (GNNumberID, GNGroupID ) values (?,?)";
+				$st = $db->prepare($sql);
+				$st->execute(array($numID,$GroupNumberID));
+				echo($sql);
+			}
+		}
+
+        }
+
 	if ($crudAction == 'DELETENUMBER') {
 
 
@@ -249,7 +276,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo("<div id='outer' width=700>");
 	echo("<div id='left' style='display: inline;float: left;'>");
 
-	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
+	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage  phone numbers in BULK.</div><br>");
 
 	$result = $db->query('select * from Number where NumberID > 0');
 
@@ -265,41 +292,32 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         {
 		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
 		$currentDisplayNumber = $row['NumberID'];
+
+		$checked = "";
+		$checkboxcode = "<input type='checkbox' name='number_grp[]' value='active_$row[NumberID]' $checked/>";
+
 		
 		echo "<tr class='" .$rowstyle . "'>";
 
-		if ($updateNumberID > 0) {
-			if ($currentDisplayNumber == $updateNumberID) {
-				#show edit box
-				echo "<input type='hidden' name='UpdateNumberID' value='" . $updateNumberID . "'/>";
-				echo "<td><input type='text' size=20 name='UpdateNumber' value='$row[Number]'/></td>";
-				echo "<td><input type='text' name='UpdateNumberDescription' value='$row[NumberDescription]'/></td>";
-				echo "<td><input type='submit' name='Update' value='ok' />";
-
-				echo "<input type='hidden' name='CRUD' value='UPDATENUMBER'/>";
-
-				
-
-			} else {
-				#show row without crud
-				echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td>-</td>";
-	
-			}
-		} else {
-			#show row with crud
-			echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td><a href='$this_url?secret=$secret_local&CRUD=EDITNUMBER&NumberID=$row[NumberID]'>edit</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETENUMBER&NumberID=$row[NumberID]'>delete</a></td>";
-		}
-                echo "</tr>";
+		#show row with crud
+		echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td>$checkboxcode</td>";
+		echo "</tr>\n";
         }
-	if ($updateNumberID == 0) {
-		echo "<input type='hidden' name='CRUD' value='CREATENUMBER'/>";
-		echo "<tr class='" .$rowstyle . "'>";
-		echo "<td><input type='text' size=20 name='NewNumber' value='+44 xxxx xxx xxx'/></td>";
-		echo "<td><input type='text' name='NewNumberDescription' value='NumberDescription'/></td>";
-		echo "<td><input type='submit' name='Add' value='Add' />";
-		echo "</tr>";
-	}
 	echo "</table>";
+	#draw a dropdown with all the groups.
+	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupNumberID'>";
+
+                $numberresult = $db->query("SELECT * from Groups where GroupID > 0");
+                $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
+                foreach($numberarray as $numberrow) {
+
+                        echo "<option value='$numberrow[GroupID]'>$numberrow[GroupName]</option>";
+                }
+
+        echo "</select>";
+	echo "<input type='hidden' name='CRUD' value='BULKGROUP'/>";
+	echo "<input type='submit' name='go' value='go'/>";
+	
 
 	echo "</form>"; #end of number mgmt form
 

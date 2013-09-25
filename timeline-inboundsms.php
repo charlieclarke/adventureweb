@@ -246,7 +246,7 @@ function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwili
 			$ofInterest=1;
 			echo "<!-- no filter so lets deal with children -->";
 		} else {
-			$posInString = strpos(" $smsMessageBody", "$objThread->mp3Name");
+			$posInString = strpos(strtolower(" $smsMessageBody"), strtolower("$objThread->mp3Name"));
 
 			if ($posInString > 0) {
 				$ofInterest = 1;

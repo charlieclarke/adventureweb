@@ -175,7 +175,7 @@ echo "<!--about ot get heartbeat --!>";
                 $currentDBTime = $row['CurrentDBTime'];
         }
 
-        if ($lastHeartBeatAgo < 2) {
+        if ($lastHeartBeatAgo < 5) {
                 $heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
         } else {
                 $heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
@@ -224,11 +224,11 @@ echo("<form action='" . $this_page . "' method='get'>");        echo("Send KickO
 echo("<form action='" . $this_page . "' method='get'>");  echo "<input name='CRUD' value='DELETESTASH' type='hidden'>\n\n";
 echo "<input type='submit' value='DELETE the STASH'>";
 
-	$sql = 'SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID order by StashKey, NumberDescription' ;
+	$sql = 'SELECT Number, NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID order by StashKey, NumberDescription' ;
 	$result = $db->query($sql);
 
 	echo("<table id = 'ttable'>");
-	echo("<tr><th id = 'description_header'>Number</th><th id='q_header'>Key</th><th>Value</th></tr>");
+	echo("<tr><th id = 'number'>Number</th><th id = 'description_header'>Name</th><th id='q_header'>Key</th><th>Value</th></tr>");
 
 	$rownum = 0;
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
@@ -239,7 +239,7 @@ echo "<input type='submit' value='DELETE the STASH'>";
 
 		echo "<tr class='" .$rowstyle . "'>";
 
-		echo "<td>$row[NumberDescription]</td><td>$row[StashKey]</td><td>$row[StashValue]'</td>";
+		echo "<td>$row[Number]</td><td>$row[NumberDescription]</td><td>$row[StashKey]</td><td>$row[StashValue]'</td>";
 		echo "</tr>";
 	}
 	echo "</table>";

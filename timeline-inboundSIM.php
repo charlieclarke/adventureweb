@@ -67,6 +67,7 @@ $guidCookie = $_COOKIE["SIMCOOKIE"];
 	#get the DEFAULT thread
 	
 	$defaultThreadID = $tdb->getDefaultThreadID('SIM');
+	echo("<!-- default thread ID is $defaultThreadID -->\n");
 
 
 	#see if there are any inbound threads associated with this number
@@ -83,13 +84,16 @@ $guidCookie = $_COOKIE["SIMCOOKIE"];
 
 	
 
-	#get threads which match for this number
-	$objThreadsArray = $tdb->getThreadsByPhoneNumberID($objInboundNumber->NumberID);
 
 
 	$todoxml = "";
 
 	#first for NON blank mp3 names
+/*
+//blocked out this  - SIM only  relevent for null group.
+	#get threads which match for this number
+	$objThreadsArray = $tdb->getThreadsByPhoneNumberID($objInboundNumber->NumberID);
+
 	echo("<!-- doing nunmber match group NON BLANK bahvious -->"); 
 	foreach($objThreadsArray as $objThread) {
 		if (!empty($objThread->mp3Name)) {
@@ -131,6 +135,7 @@ $guidCookie = $_COOKIE["SIMCOOKIE"];
 		
 
 
+*/
 	#now get threads which match the null group
 
 
@@ -196,6 +201,7 @@ $guidCookie = $_COOKIE["SIMCOOKIE"];
 	if ($defaultThreadID > 0) {
 		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
 			$note="SIM default behaviour";
+		echo("<!--defaul thread of $objMatchThread->ThreadID -->");
 	}
 
 	#deal with children
@@ -248,7 +254,7 @@ function deal_with_children($objThread, $objNumber) {
 
 
 function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwilioNumber) {
-	echo "<!--dealing with threadID $threadID-->";
+	echo "<!--deal with thread: dealing with threadID $objThread->ThreadID -->";
 	$dealWithChildren = 0;
 
 	global $tdb;

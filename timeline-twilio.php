@@ -73,8 +73,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newNumber = $_GET["NewTNumber"];
 		$newNumberName = $_GET["NewTNumberName"];
 		$isActive = $_GET["TNumberIsActive"];
+		$prefixWL = $_GET["TNumberPrefixWL"];
 
-		$tdb->createTwilioNumber($newNumber, $newNumberName, $isActive);
+		$tdb->createTwilioNumber($newNumber, $newNumberName, $isActive,$prefixWL);
 
 
 	}
@@ -101,10 +102,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$updateNumber = $_GET["UpdateTNumber"];
                 $updateNumberName = $_GET["UpdateTNumberName"];
                 $isActive = $_GET["UpdateIsActive"];
+		$prefixWL = $_GET["UpdatePrefixWL"];
 
 		$updateNumber = preg_replace('/\s+/', '', $updateNumber);
 
-		$tdb->updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive);
+		$tdb->updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive,$prefixWL);
 	
 
 		$updateTNumberID = 0;
@@ -144,7 +146,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
 
 	echo("<table>");
-	echo("<tr><th>Number</th><th>Description</th><th></th></tr>");
+	echo("<tr><th>Number</th><th>Description</th><th></th><th>Prefix</th></tr>");
 	
 	$rownum=0;
         foreach($twilioNumbers as $tnumber)
@@ -160,6 +162,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 				echo "<td><input type='text' size=20 name='UpdateTNumber' value='$tnumber->TwilioNumber'/></td>";
 				echo "<td><input type='text' name='UpdateTNumberName' value='$tnumber->TwilioNumberName'/></td>";
 				echo "<td><input type='text' name='UpdateIsActive' value='$tnumber->IsActive'/></td>";
+				echo "<td><input type='text' name='UpdatePrefixWL' value='$tnumber->PrefixWL'/></td>";
 				echo "<td><input type='submit' name='Update' value='ok' />";
 
 				echo "<input type='hidden' name='CRUD' value='UPDATETNUMBER'/>";
@@ -168,12 +171,12 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 			} else {
 				#show row without crud
-				echo "<td>$tnumber->TwilioNumber</td><td>$tnumber->TwilioNumberName]</td><td>$tnumber->IsActive</td><td>-</td>";
+				echo "<td>$tnumber->TwilioNumber</td><td>$tnumber->TwilioNumberName]</td><td>$tnumber->IsActive</td><td>$tnumber->PrefixWL</td><td>-</td>";
 	
 			}
 		} else {
 			#show row with crud
-		echo "<td>$tnumber->TwilioNumber</td><td>$tnumber->TwilioNumberName</td><td>$tnumber->IsActive</td><td>-</td><td><a href='$this_url?secret=$secret_local&CRUD=EDITTNUMBER&TNumberID=$tnumber->TwilioNumberID'>edit</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETNUMBER&TNumberID=$tnumber->TwilioNumberID'>delete</a></td>";
+		echo "<td>$tnumber->TwilioNumber</td><td>$tnumber->TwilioNumberName</td><td>$tnumber->IsActive</td><td>$tnumber->PrefixWL</td><td>-</td><td><a href='$this_url?secret=$secret_local&CRUD=EDITTNUMBER&TNumberID=$tnumber->TwilioNumberID'>edit</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETNUMBER&TNumberID=$tnumber->TwilioNumberID'>delete</a></td>";
 		}
                 echo "</tr>";
         }
@@ -183,6 +186,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		echo "<td><input type='text' size=20 name='NewTNumber' value='+44 xxxx xxx xxx'/></td>";
 		echo "<td><input type='text' name='NewTNumberName' value='NumberDescription'/></td>";
 		echo "<td><input type='text' name='TNumberIsActive' value='1'/></td>";
+		echo "<td><input type='text' name='TNumberPrefixWL' value='+44'/></td>";
 		echo "<td><input type='submit' name='Add' value='Add' />";
 		echo "</tr>";
 	}

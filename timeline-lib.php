@@ -51,6 +51,7 @@
 				$number->TwilioNumber = $row['TNumber'];
 				$number->TwilioNumberName =  $row['TNumberName']; 
 				$number->IsActive = $row['IsActive'];
+				$number->PrefixWL = $row['PrefixWL'];
 
 				$numbers[] = $number;
 
@@ -59,12 +60,12 @@
 
 
 		}
-		function createTwilioNumber($number, $numberName, $isActive) {
+		function createTwilioNumber($number, $numberName, $isActive,$prefixWL) {
 	
-			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive) values (?,?,?)";
+			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL) values (?,?,?,?)";
 
 			$st = $this->db->prepare($sql);
-			$st->execute(array($number,$numberName, $isActive));
+			$st->execute(array($number,$numberName, $isActive,$prefixWL));
 
 
 
@@ -82,12 +83,12 @@
                 }
 
 	
-		function updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive) {
+		function updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive,$prefixWL) {
 
-			$sql = "UPDATE TNumber set TNumber = ?, TNumberName=?, IsActive = ?  where TNumberID = ?"; 
+			$sql = "UPDATE TNumber set TNumber = ?, TNumberName=?, IsActive = ?, PrefixWL = ?  where TNumberID = ?"; 
 
 			$st = $this->db->prepare($sql);
-			$st->execute(array($updateNumber, $updateNumberName, $isActive, $updateTNumberID));
+			$st->execute(array($updateNumber, $updateNumberName, $isActive, $prefixWL,$updateTNumberID));
 
 		}
 
@@ -190,7 +191,7 @@
 
 		function getThreadByThreadID($threadID) {
 
-			 $sql = "SELECT Thread.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, TNumber where id = ? and TNumber.TNumberID = Thread.TNumberID  ";
+			 $sql = "SELECT TNumber.PrefixWL,Thread.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, TNumber where id = ? and TNumber.TNumberID = Thread.TNumberID  ";
  
 
                         echo("<!--exec sql " . $sql . "-->");
@@ -217,6 +218,7 @@
                                 $thread->ChildThreadText = $r['ChildThreadID'];
                                 $thread->TNumberID = $r['TNumberID'];
                                 $thread->TNumber = $r['TNumber'];
+                                $thread->TNumberPrefixWL = $r['PrefixWL'];
                                 $thread->ChildThreads = array();
 
                                 #deal with children
@@ -238,7 +240,7 @@
 			#returns an array of Thread objects for threads which can react to $numberID
 			#at the moment does NOT filter on time - this is a TODO
 			#however - changed on 17th sept 2013 - this now filters on Active
-			 $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, Groups, Number, GroupNumber, TNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.NumberID = ? and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
+			 $sql = "SELECT TNumber.PrefixWL,TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, Groups, Number, GroupNumber, TNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.NumberID = ? and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
 
 			echo("<!--exec sql " . $sql . "-->");
 			$q = $this->db->prepare($sql);
@@ -264,6 +266,7 @@
 				$thread->ChildThreadText = $r['ChildThreadID'];
 				$thread->TwilioNumberID = $r['TNumberID'];
 				$thread->TwilioNumber = $r['TNumber'];
+                                $thread->TNumberPrefixWL = $r['PrefixWL'];
 				$thread->ChildThreads = array();
 
 				#deal with children
@@ -284,7 +287,7 @@
 		function getThreadsByNumberGroupID($groupID) {
                         #returns an array of Thread objects for threads which can react to $numberID
                         #at the moment does NOT filter on time - this is a TODO
-                         $sql = "SELECT TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread,  TNumber where Thread.DestNumber = ?  and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
+                         $sql = "SELECT TNumber.PrefixWL,TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread,  TNumber where Thread.DestNumber = ?  and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1  order by Thread.FrequencyMinutes";
 
                         echo("<!--exec sql " . $sql . "-->");
                         $q = $this->db->prepare($sql);
@@ -310,6 +313,7 @@
                                 $thread->ChildThreadText = $r['ChildThreadID'];
                                 $thread->TwilioNumberID = $r['TNumberID'];
                                 $thread->TwilioNumber = $r['TNumber'];
+                                $thread->TNumberPrefixWL = $r['PrefixWL'];
                                 $thread->ChildThreads = array();
 
                                 #deal with children
@@ -354,7 +358,7 @@
 		function getTwilioNumberByNumber($number) {
                         $objNumber = new TwilioNumber;
 
-                        $sql = "SELECT TNumberID, TNumberName  FROM TNumber  WHERE TNumber = ?";
+                        $sql = "SELECT TNumberID, TNumberName,PrefixWL  FROM TNumber  WHERE TNumber = ?";
                         $q = $this->db->prepare($sql);
                         $q->execute(array($number));
 
@@ -367,18 +371,19 @@
                           $numberID = $r['TNumberID'];
                           $numberName = $r['TNumberName'];
 				$isActive = $r['IsActive'];
+				$prefixWL = $r['PrefixWL'];
                         }
 
                         #if we dont know the number - add it.
                         if ($numberID == 0) {
 
-                                $sql = "INSERT into TNumber (TNumber, TNumberName, IsActive) values(?,?,1)";
+                                $sql = "INSERT into TNumber (TNumber, TNumberName, IsActive, PrefixWL) values(?,?,1,'')";
                                 $q = $this->db->prepare($sql);
                                 $q->execute(array($number,'unknown twilio number'));
 
 
                                 #and get the new numberID
-                                $sql = "SELECT TNumberID, TNumberName, IsActive  FROM TNumber  WHERE TNumber = ?";
+                                $sql = "SELECT TNumberID, TNumberName, IsActive,PrefixWL  FROM TNumber  WHERE TNumber = ?";
                                 $q = $this->db->prepare($sql);
                                 $q->execute(array($number));
 
@@ -391,6 +396,7 @@
 					$numberID = $r['TNumberID'];
 					$numberName = $r['TNumberName'];
 					$isActive = $r['IsActive'];
+					$prefixWL = $r['PrefixWL'];
                                 }
                         }
 
@@ -398,6 +404,7 @@
                         $objNumber->TwilioNumber = $number;
                         $objNumber->TwilioNumberName = $numberName;
 			$objNumber->IsActive = $isActive;
+			$objNumber->PrefixWL = $prefixWL;
 
                         return $objNumber;
 
@@ -834,6 +841,7 @@
 		public $ChildThreads;
 		public $TwilioNumberID;
 		public $TwilioNumber;
+		public $TNPrefixWL;
 
 	}
 
@@ -860,6 +868,7 @@
 		public $TwilioNumber;
 		public $TwilioNumberName;
 		public $IsActive;
+		public $PrefixWL;
 	}
 
 ?>

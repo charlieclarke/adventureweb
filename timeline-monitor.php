@@ -166,7 +166,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		#removing < and >  input validation - and also doing output encoding when rendering.
 		#this is so we can have HTML in the questions...
-		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9_ %\[\]\.\(\)%&-<>]/s', '', $newThreadMp3);
+		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9?_ @#%\[\]\.\(\)%&-<>]/s', '', $newThreadMp3);
 
 		if ($newChildThreadID == "") {
 			$newChildThreadID = 0;
@@ -566,11 +566,18 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo "<form action='" . $this_page . "' method='get'><table>";
 
+
+	
+
 	$result = $db->query('SELECT * FROM Thread,Action, Groups, TNumber where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID and Thread.TNumberID = TNumber.TNumberID');
-	echo("<tr><th>Active</th><th>ID</th><th>Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
+
+	$tablehead = "<tr><th>Active</th><th>ID</th><th >Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>";
+	echo $tablehead;
+
+	$tablebody = "";
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
-echo "<br><br>";
+//echo "<br><br>";
 	
 	$default_thread_description='thread description';
 	$default_action_type=1;
@@ -586,11 +593,25 @@ echo "<br><br>";
 	$default_stop_time_minute = 59;
 	
 	$rownum=0;
-	foreach($rowarray as $row)
+
+	$sortcolumn = "id";
+	$sortdir = "asc";
+	$sortdir = "desc";
+
+	$keyarray = array();
+	
+	foreach ($rowarray as $key => $row)
+	{
+	    $keyarray[$key] = $row[$sortcolumn];
+	}
+
+	array_multisort($keyarray, $sortdir == 'asc' ? SORT_ASC :SORT_DESC, $rowarray);
+
+	foreach($rowarray as $row) //loop for rendering each row
 	{
 		$rowstyle = (++$rownum % 2)==0?"d0":"d1";
 		
-		echo "<tr class='" .$rowstyle . "'>";
+		$tablebody .= "<tr class='" .$rowstyle . "'>";
 
 		$checked = $row['Active'] == 1?'checked':'';
 
@@ -599,9 +620,9 @@ echo "<br><br>";
 
 		$encodedMP3Name = htmlspecialchars($row['mp3Name']);
 		$insertLink = ($row['ActionType']==ActionType::$KickOffActionType)?"insert":"<a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>";
-		echo "<td>$checkboxcode</td><td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$encodedMP3Name</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
-		echo "</tr>";
-		$maxID = $row[id];
+		$tablebody .= "<td>$checkboxcode</td><td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$encodedMP3Name</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
+		$tablebody .= "</tr>";
+		$maxID = max($maxID,$row[id]);
 
 
 		#capture details if we are editing...
@@ -622,7 +643,7 @@ echo "<br><br>";
 
 
 		} 
-	}
+	} //end of loop for rentering each row
 	$rowstyle = (($maxID+1) % 2)==0?"d0":"d1";
 
 	if ($editThreadID > 0) {
@@ -702,6 +723,7 @@ echo "<br><br>";
 	echo "</td>";
 	echo "<td><input type='submit' value='Submit' /></td>";
 	echo "</tr>";
+	echo $tablebody;
 	echo("</table>");
 	echo("</form>");
 

@@ -675,7 +675,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</td>";
 
 
-	echo "<td><input type='text' name='NewThreadDesc' value='$default_thread_description'/></td>";
+	echo "<td><input type='text' name='NewThreadDesc' value=" . json_encode($default_thread_description) . "/></td>";
 	echo "<td><select name='NewActionID'>";
 
 		$result = $db->query("SELECT * from Action");
@@ -701,7 +701,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo "</select>";
 	echo "</td>";
-	echo "<td><input type='text' name='NewMp3Name' value='$default_mp3_name'/></td>";
+	echo "<td><input type='text' name='NewMp3Name' value=" . json_encode($default_mp3_name) . "/></td>";
 	echo "<td><input type='text' name='NewFrequency' value='$default_frequency_minutes'/></td>";
 	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID[]' multiple='multiple' size=3>";
 

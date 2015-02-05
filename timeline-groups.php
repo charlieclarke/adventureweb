@@ -15,7 +15,7 @@ $machinename =  gethostname();
          $ini_array = parse_ini_file($configfile);
 ?>
 <?php
-$username = $ini_array['userID'];
+/*$username = $ini_array['userID'];
 $password = $ini_array['password'];
 
 
@@ -39,6 +39,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     exit;
 	}
 }
+*/
 ?>
 <?php 
     header("content-type: text/html");
@@ -53,6 +54,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 	$this_url = $base_url . "/timeline-groups.php";
 	
+	require_once('timeline-lib.php');
+
+        $tdb = new DB($db_location);
+        $tdb->init();
 
 	#if ($secret != $local_secret) {
 #		header("HTTP/1.0 401 Unauthorized");
@@ -61,6 +66,34 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		
 	#init database
 	$db = new PDO('sqlite:'.$db_location);
+
+#beginning of the login code
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+} else {
+        $login=0;
+
+        $username = $_SERVER['PHP_AUTH_USER'];
+        $password = $_SERVER['PHP_AUTH_PW'];
+
+        $clone = $tdb->getCloneByUser($username, $password);
+
+
+        if ($clone->CloneID >= 0) {
+                $login=1;
+        }
+        if ($login == 0) {
+                header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+        }
+
+}
+#end of the login code
 
 
 	#perform actions etc.
@@ -103,10 +136,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		$newNumber = preg_replace('/\s+/', '', $newNumber);
 
-		$sql = "INSERT INTO Number (Number, NumberDescription) values (?,?)";
+		$sql = "INSERT INTO Number (Number, NumberDescription,CloneID) values (?,?,?)";
 
 		$st = $db->prepare($sql);
-		$st->execute(array($newNumber,$newNumberDescription));
+		$st->execute(array($newNumber,$newNumberDescription,$clone->CloneID));
 
 	}
 	if ($crudAction == 'DELETENUMBER') {
@@ -156,10 +189,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if ($crudAction == 'CREATEGROUP') {
                 $newGroup = $_GET["NewGroupName"];
 
-                $sql = "INSERT INTO Groups (GroupName) values (?)";
+                $sql = "INSERT INTO Groups (GroupName,CloneID) values (?,?)";
 
                 $st = $db->prepare($sql);
-                $st->execute(array($newGroup));
+                $st->execute(array($newGroup,$clone->CloneID));
 
         }
         if ($crudAction == 'DELETEGROUP') {
@@ -201,42 +234,17 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	#render
 
-	 #top menu bar
-#get last heartbeat from db
-
-
-        $result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo FROM HeartBeat where HeartBeatName='LastTimeLine'");
-
-        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-
-        $lastHeartBeat = 'never';
-        $lastHeartBeatAgo = -100;
-        foreach($rowarray as $row)
-        {
-
-                $lastHeartBeat = $row['HeartBeatTime'];
-                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
-        }
-
-        if ($lastHeartBeatAgo < 2) {
-                $heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
-        } else {
-                $heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
-        }
-
-        #render page
-
         #top menu bar
-        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;$instance_name&nbsp;|&nbsp;$heartBeatText</div>");
+	echo($tdb->renderMenuBar($base_url, $instance_name));
 
         echo("<br><br>");
 
 	echo("<div id='outer' width=700>");
 	echo("<div id='left' style='display: inline;float: left;'>");
 
-	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
+	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div>working on clone $clone->CloneName<br>");
 
-	$result = $db->query('select * from Number where NumberID > 0');
+	$result = $db->query("select * from Number where NumberID > 0 and CloneID = $clone->CloneID");
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
@@ -293,7 +301,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("<div class='tableTitle'>Group Management</div><br><div class='tableDescription' width=250px>Here we can manage groups.</div><br>");
 
-	$result = $db->query('select * from Groups where GroupID > 0');
+	$result = $db->query("select * from Groups where GroupID > 0 and CloneID = $clone->CloneID");
 
 
 
@@ -347,7 +355,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 	echo("<div class='tableTitle'>Group Membership</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div><br>");
 
-        $groupresult = $db->query('select * from Groups where GroupID > 0' );
+        $groupresult = $db->query("select * from Groups where GroupID > 0 and cloneID = $clone->CloneID" );
 
 
         echo "<input type='hidden' name='secret' value='" . $local_secret . "'/>";
@@ -366,7 +374,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 		echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='ADDNUMBERTOGROUP'>";
 
-                $numberresult = $db->query("SELECT * from Number where NumberID not in (select GNNumberID from GroupNumber where GNGroupID = " . $groupID . ") and NumberID > 0");
+                $numberresult = $db->query("SELECT * from Number where NumberID not in (select GNNumberID from GroupNumber where GNGroupID = " . $groupID . ") and NumberID > 0 and CloneID = $clone->CloneID");
                 $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
                 foreach($numberarray as $numberrow) {
 
@@ -404,7 +412,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 
-	$sql = 'SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID order by StashKey, NumberDescription' ;
+	$sql = "SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID where Number.CloneID = $clone->CloneID order by StashKey, NumberDescription" ;
 	$result = $db->query($sql);
 
 	echo("<table>");

@@ -15,6 +15,7 @@ $machinename =  gethostname();
          $ini_array = parse_ini_file($configfile);
 ?>
 <?php
+/*
 $username = $ini_array['userID'];
 $password = $ini_array['password'];
 
@@ -39,6 +40,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     exit;
 	}
 }
+*/
 ?>
 <?php 
     header("content-type: text/html");
@@ -52,6 +54,43 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-groups.php";
+
+
+	require_once('timeline-lib.php');
+
+        $tdb = new DB($db_location);
+        $tdb->init();
+
+
+
+#beginning of the login code
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+} else {
+        $login=0;
+
+        $username = $_SERVER['PHP_AUTH_USER'];
+        $password = $_SERVER['PHP_AUTH_PW'];
+
+        $clone = $tdb->getCloneByUser($username, $password);
+
+
+        if ($clone->CloneID >= 0) {
+                $login=1;
+        }
+        if ($login == 0) {
+                header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+        }
+
+}
+#end of the login code
+
 	
 
 	#if ($secret != $local_secret) {
@@ -244,33 +283,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	#render
 
 	 #top menu bar
-#get last heartbeat from db
+	echo("<!--about to do reder menu--!>");
 
-
-        $result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo FROM HeartBeat where HeartBeatName='LastTimeLine'");
-
-        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-
-        $lastHeartBeat = 'never';
-        $lastHeartBeatAgo = -100;
-        foreach($rowarray as $row)
-        {
-
-                $lastHeartBeat = $row['HeartBeatTime'];
-                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
-        }
-
-        if ($lastHeartBeatAgo < 2) {
-                $heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
-        } else {
-                $heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
-        }
-
-        #render page
-
-        #top menu bar
-        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;$instance_name&nbsp;|&nbsp;$heartBeatText</div>");
-
+	echo($tdb->renderMenuBar($base_url, $instance_name));
         echo("<br><br>");
 
 	echo("<div id='outer' width=700>");

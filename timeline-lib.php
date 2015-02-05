@@ -12,7 +12,31 @@
 		}
 
 
+		function getDBTime() {
+
+
+			echo("<!--in  get db time--!>\n");
+
+                         $result = $this->db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo, DATETIME('now') as CurrentDBTime FROM HeartBeat where HeartBeatName='LastTimeLine'");
+
+                        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+                        foreach($rowarray as $row)
+                        {
+				$currentDBTime = $row['CurrentDBTime'];
+
+                        }
+
+                        return $currentDBTime;
+
+
+		}
+
+
+
 		function getHeartBeat() {
+
+			 echo("<!--in  get heart beat --!>\n");
 
 			 $result = $this->db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo FROM HeartBeat where HeartBeatName='LastTimeLine'");
 
@@ -36,6 +60,250 @@
 
 
 		}
+		        #render
+        	function renderMenuBar($base_url, $instance_name) {
+
+			#top menu bar
+			#get last heartbeat from db
+
+			echo("<!--in renderMenuBar - about to get heart beat --!>\n");
+			$heartBeat = $this->getHeartBeat();
+
+			echo("<!--in renderMenuBar - got  heart beat --!>\n");
+			if ($heartBeat->LastHeartBeatAgo < 2) {
+				$heartBeatText = "TimeLine Active and OK - $heartBeat->LastHeartBeat";
+			} else {
+				$heartBeatText = "TimeLine Appears Down - $heartBeat->LastHeartBeat";
+			}
+			#render page
+
+			#top menu bar
+			$pattern = "/http:\/\/(.*)/";
+
+			$replacement = "http://log:out@$1";
+			$logout_url = preg_replace($pattern, $replacement, $base_url);
+			
+			$menu_text = "<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-twilio.php>Twilio Account</a>&nbsp;|&nbsp;<a href=$base_url/timeline-bulk.php>Manage Bulk Agents</a>&nbsp;|&nbsp;<a href=$base_url/timeline-stash.php>STASH Console</a>&nbsp;|&nbsp;<a href=$base_url/timeline-scene.php>Scenes</a>&nbsp;|&nbsp;<a href=$base_url/timeline-clone.php>Clones</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText&nbsp;|&nbsp;<a href=$logout_url/timeline-monitor.php>logout</a></div>";
+
+			return $menu_text;
+
+
+		}
+
+
+	###deal with scenes
+
+/*   public $SceneID;
+                public $CloneID;
+                public $SceneName;
+                public $IsActive;
+*/
+
+		function getAllScenes($cloneID) {
+
+
+
+	echo("<!--in get all scenes--!>");
+
+                        $scenes = array();
+			$stmt = $this->db->prepare("select * from Scene where CloneID = ?");
+
+                        $stmt->execute(array($cloneID));
+			while ($row = $stmt->fetch()) {
+
+				echo("<!--in get all scenes got sene" . $row['SceneID'] . "--!>");
+                                $scene = new Scene();
+                                $scene->SceneID = $row['SceneID'];
+                                $scene->SceneName = $row['SceneName'];
+
+                                $scenes[] = $scene;
+
+                        }
+                        return $scenes;
+
+
+                }
+
+		function createScene($newSceneName, $cloneID){
+
+			$sql = "INSERT INTO Scene (SceneName, CloneID, IsActive) values (?,?,?)";
+
+                        $st = $this->db->prepare($sql);
+                        $st->execute(array($newSceneName, $cloneID, 1));
+
+
+		}
+
+		function updateSceneAllFields($updateSceneID, $updateSceneName,$cloneID) {
+
+
+			$sql = "UPDATE Scene set SceneName = ? where SceneID = ? and CloneID = ? ";
+
+                        $st = $this->db->prepare($sql);
+
+
+			 $st->execute(array($updateSceneName,$updateSceneID, $cloneID));
+
+
+		}
+
+	###deal with clones
+
+
+		function getCloneByUser($username, $password) {
+
+
+			$clone = new SystemClone();
+			$clone->CloneID = -1;
+			echo("<!-- looking for $username $password -->");
+    
+                        $stmt = $this->db->prepare("SELECT * FROM Clone, CloneTwilio where Clone.CloneID = CloneTwilio.CloneTwilioID and UserName = ? and Password = ?");
+
+                        $stmt->execute(array($username, $password));
+                          while ($row = $stmt->fetch()) {
+
+
+                                $clone->CloneID = $row['CloneID'];
+                                echo("<!--got row - clone $clone->CloneID  -->");
+                                $clone->CloneName = $row['CloneName'];
+                                $clone->TwilioAcountSID = $row['twilioAcountSID'];
+                                $clone->TwilioAuthToken = $row['twilioAuthToken'];
+                                $clone->UserName = $row['UserName'];
+                                $clone->Password = $row['Password'];
+                                $clone->MP3URL = $row['MP3URL'];
+                          }
+
+                        return $clone;
+
+		}
+
+		function getCloneByTwilioSID($twilioSID) {
+
+
+			$clone = new SystemClone();
+			echo("<!-- in getCloneByTwilioSID: looking for sid $twilioSID -->");
+
+			$stmt = $this->db->prepare("SELECT * FROM Clone, CloneTwilio where Clone.CloneID = CloneTwilio.CloneTwilioID and twilioAcountSID = ?");
+
+			$stmt->execute(array($twilioSID));
+			  while ($row = $stmt->fetch()) {
+				echo("<!--got row - clone $clone->CloneID -->");
+
+
+                                $clone->CloneID = $row['CloneID'];
+                                $clone->CloneName = $row['CloneName'];
+                                $clone->TwilioAcountSID = $row['twilioAcountSID'];
+                                $clone->TwilioAuthToken = $row['twilioAuthToken'];
+                                $clone->UserName = $row['UserName'];
+                                $clone->Password = $row['Password'];
+				$clone->MP3URL = $row['MP3URL'];
+			  }
+			#$clone->CloneName = $twilioSID;
+
+			return $clone;
+
+		}
+
+
+		function getCloneByThreadID($threadID) {
+
+
+                        $clone = new SystemClone();
+                        echo("<!-- looking for $threadID -->");
+
+                        $stmt = $this->db->prepare("SELECT * FROM Clone, Scene, Thread where Clone.CloneID = Scene.CloneID and Thread.SceneID = Scene.SceneID and Thread.id = ? ");
+
+                        $stmt->execute(array($threadID));
+                          while ($row = $stmt->fetch()) {
+                                echo("<!--got row - clone $clone->CloneID -->");
+
+
+                                $clone->CloneID = $row['CloneID'];
+                                $clone->CloneName = $row['CloneName'];
+                                $clone->TwilioAcountSID = $row['twilioAcountSID'];
+                                $clone->TwilioAuthToken = $row['twilioAuthToken'];
+                                $clone->UserName = $row['UserName'];
+                                $clone->Password = $row['Password'];
+                                $clone->MP3URL = $row['MP3URL'];
+                          }
+                        #$clone->CloneName = $twilioSID;
+
+                        return $clone;
+
+                }
+
+
+		function getAllClones() {
+
+                         $result = $this->db->query('select * from Clone join CloneTwilio on Clone.CloneID = CloneTwilio.CloneTwilioID');
+
+                        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+                        $clones = array();
+
+
+	echo("<!--in get all clones--!>");
+
+                        foreach($rowarray as $row)
+                        {
+				echo("<!--in get all clones got clone" . $row['CloneID'] . "--!>");
+                                $clone = new SystemClone();
+                                $clone->CloneID = $row['CloneID'];
+                                $clone->CloneName = $row['CloneName'];
+                                $clone->TwilioAcountSID = $row['twilioAcountSID'];
+                                $clone->TwilioAuthToken = $row['twilioAuthToken'];
+				$clone->UserName = $row['UserName'];
+				$clone->Password = $row['Password'];
+				$clone->MP3URL = $row['MP3URL'];
+
+                                $clones[] = $clone;
+
+                        }
+                        return $clones;
+
+
+                }
+
+		function createClone($newCloneName, $newCloneTwilioAcountSID, $newCloneTwilioAuthToken,$newCloneUserName, $newClonePassword,$newCloneMP3URL){
+
+			$sql = "INSERT INTO Clone (CloneName, UserName, Password,MP3URL) values (?,?,?,?)";
+
+                        $st = $this->db->prepare($sql);
+                        $st->execute(array($newCloneName, $newCloneUserName, $newClonePassword,$newCloneMP3URL));
+
+
+			$cloneID = $this->db->lastInsertId();
+
+
+			$sql = "INSERT INTO CloneTwilio (CloneTwilioID, twilioAcountSID, twilioAuthToken) values (?,?,?)";
+
+                        $st = $this->db->prepare($sql);
+                        $st->execute(array($cloneID, $newCloneTwilioAcountSID, $newCloneTwilioAuthToken));
+
+		}
+
+		function updateCloneAllFields($updateCloneID, $updateCloneName, $updateCloneTwilioAcountSID, $updateCloneTwilioAuthToken, $updateCloneUserName, $updateClonePassword,$updateCloneMP3URL) {
+
+
+			$sql = "UPDATE Clone set CloneName = ?, UserName=?, Password = ?,MP3URL = ? where CloneID = ?";
+
+                        $st = $this->db->prepare($sql);
+                        $st->execute(array($updateCloneName, $updateCloneUserName, $updateClonePassword,$updateCloneMP3URL, $updateCloneID));
+
+
+
+			$sql = "UPDATE CloneTwilio set twilioAcountSID = ?, twilioAuthToken=? where CloneTwilioID = ?";
+
+                        $st = $this->db->prepare($sql);
+                        $st->execute(array($updateCloneTwilioAcountSID, $updateCloneTwilioAuthToken, $updateCloneID));
+
+
+		}
+
+
+
+	###deal with twilioNumbers
+
 		function getAllTwilioNumbers() {
 
 			 $result = $this->db->query('select * from TNumber where TNumberID > 0');
@@ -60,6 +328,44 @@
 
 
 		}
+
+		function getAllTwilioNumbersByCloneID($cloneID) {
+
+                         $sql = 'select * from TNumber where TNumberID > 0 and CloneID = ?';
+
+			echo "<!-- sql is $sql cloneID = $cloneID-->";
+
+
+
+                        $numbers = array();
+
+
+			$q = $this->db->prepare($sql);
+                        $q->execute(array($cloneID));
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        // fetch
+                        while($row = $q->fetch()){
+                                $number = new TwilioNumber();
+                                $number->TwilioNumberID = $row['TNumberID'];
+                                $number->TwilioNumber = $row['TNumber'];
+                                $number->TwilioNumberName =  $row['TNumberName'];
+                                $number->IsActive = $row['IsActive'];
+                                $number->PrefixWL = $row['PrefixWL'];
+
+
+
+                                $numbers[] = $number;
+
+                        }
+                        return $numbers;
+
+
+                }
+
+
+
 		function createTwilioNumber($number, $numberName, $isActive,$prefixWL) {
 	
 			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL) values (?,?,?,?)";
@@ -527,6 +833,42 @@
 
                 }
 
+
+		function getAllPhoneNumbersByCloneID($cloneID) {
+                        echo "<!--get numners by cloneID: entered-->\n";
+                        $objNumber = new PhoneNumber;
+                        $numbers = array();
+
+                        $sql = "SELECT Number, NumberID, NumberDescription  FROM Number where CloneID = ?";
+                        echo "<!--get numners by cloneID: sql is $sql-->\n";
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array($cloneID));
+                        echo "<!--get numners by cloneID: sql is finished-->\n";
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $numberID = 0;
+                        $numberDescription='unknown';
+                        // fetch
+                        while($r = $q->fetch()){
+                          $numberID = $r['NumberID'];
+                          $numberDescription = $r['NumberDescription'];
+                                $number = $r['Number'];
+
+                                $objNumber = new PhoneNumber;
+                                $objNumber->NumberID = $numberID;
+                                $objNumber->Number = $number;
+                                $objNumber->NumberDescription = $numberDescription;
+
+                                $numbers[$numberID] = $objNumber;
+
+                        }
+
+                        return $numbers;
+
+                }
+
+
 		function registerSIMDevice($codename){
 			//codename needs to match a number description in the PhoneNumber table.
 			//if not unique, will choose the first one ordered by numberID
@@ -816,6 +1158,7 @@
 
 		public $GroupID;
 		public $GroupName;
+		public $SceneID;
 
 	}
 
@@ -823,6 +1166,7 @@
 		public $NumberID;
 		public $Number;
 		public $NumberDescription;
+		public $CloneID;
 	}
 
 
@@ -842,6 +1186,7 @@
 		public $TwilioNumberID;
 		public $TwilioNumber;
 		public $TNPrefixWL;
+		public $SceneID;
 
 	}
 
@@ -869,6 +1214,26 @@
 		public $TwilioNumberName;
 		public $IsActive;
 		public $PrefixWL;
+		public $CloneID;
 	}
+	
+	class SystemClone {
+		public $CloneID;
+		public $CloneName;
+		public $TwilioAcountSID;
+		public $TwilioAuthToken;
+		public $UserName;
+		public $Password;
+		public $MP3URL;
+		
+	}
+	class Scene { 
+		public $SceneID;
+		public $CloneID;
+		public $SceneName;
+		public $IsActive;
+	}
+
+	
 
 ?>

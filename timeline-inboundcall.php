@@ -2,12 +2,12 @@
 	
     header("content-type: text/xml");
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    // make an associative array of callers we know, indexed by phone number
-    // if the caller is known, then greet them by name
-    // otherwise, consider them just another monkey
+
+
     $inboundnumber = $_REQUEST['From'];
 	$twilionumber = $_REQUEST['To'];
 
+	$twilioSID = $_REQUEST['AccountSid'];
 
 	#sort out config 
 
@@ -32,6 +32,7 @@
 	require_once('timeline-lib.php');
 
 	$tdb = new DB($db_location);
+	$tdb->init();
 
 	$inboundMp3Action = 6;
 	$inboundTextAction = 5;
@@ -41,9 +42,11 @@
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
+	echo "<!-- getting clone info for twilio SID $twilioSID -->\n";
+	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
 
-	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID -->\n";
-	echo "<!-- the mp3server is $mp3Server -->\n";
+	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID and clone $objClone->CloneID  -->\n";
+	echo "<!-- the mp3server is $mp3Server AND $objClone->MP3URL -->\n";
 	#get the DEFAULT thread
 	
         $defaultThreadID = $tdb->getDefaultThreadID('CALL');
@@ -57,6 +60,7 @@
 	#loop through all threads.
 	#if they are NOT the default ID, AND they are relevent to us - then process.
 	$todoxml = "";
+	$todoxml = "<Say>your clone is" . $objClone->CloneName . "</Say> ";
 	$gather_pre="";	
 	$gather_post = "";
 	$num = sizeof($objThreadsArray);
@@ -168,15 +172,19 @@ function do_thread_action($objThread, $objInboundNumber) {
 	global $inboundMp3Action;
 	global $inboundTextAction;
 	global $mp3Server;
+	global $objClone;
 	
 	$ofInterest = 0;
 	$actionTypeID = $objThread->ActionTypeID;
 	$mp3Name = $objThread->mp3Name;
 
+	$clonemp3Server = $objClone->MP3URL;
+
 	echo("<!--doing action: $mp3Name aciton type $actionTypeID ($inboundMp3Action)($inboundTextAction)-->\n");
-	echo("<!--mp3 server is $mp3Server-->\n");
+	#echo("<!--mp3 server is $mp3Server-->\n");
+	echo("<!--mp3 server is $clonemp3Server-->\n");
 	if ($actionTypeID == $inboundMp3Action) {
-		$todoxml = $todoxml . "<Play>$mp3Server" . "$mp3Name</Play>";
+		$todoxml = $todoxml . "<Play>$clonemp3Server" . "$mp3Name</Play>";
 		$ofInterest = 1;
 		echo "<!--threadID $objThread->ThreadID is of interest inbound mp3-->\n" ;
 	} else if ($actionTypeID == $inboundTextAction) {

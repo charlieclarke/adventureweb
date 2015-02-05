@@ -61,6 +61,7 @@ $machinename =  gethostname();
          $ini_array = parse_ini_file($configfile);
 ?>
 <?php
+/*
 $username = $ini_array['userID'];
 $password = $ini_array['password'];
 
@@ -87,6 +88,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     exit;
 	}
 }
+*/
 ?>
 <?php 
     header("content-type: text/html");
@@ -113,6 +115,36 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 $tdb = new DB($db_location);
         $tdb->init();
+
+
+#beginning of the login code
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+} else {
+        $login=0;
+
+        $username = $_SERVER['PHP_AUTH_USER'];
+        $password = $_SERVER['PHP_AUTH_PW'];
+
+        $clone = $tdb->getCloneByUser($username, $password);
+
+
+        if ($clone->CloneID >= 0) {
+                $login=1;
+        }
+        if ($login == 0) {
+                header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+        }
+
+}
+#end of the login code
+
 
 	#perform actions etc.
 
@@ -151,40 +183,8 @@ if ($triggerAction == 'KICKOFFGROUP') {
 	#render
 
 	 #top menu bar
-#get last heartbeat from db
+	echo($tdb->renderMenuBar($base_url, $instance_name));
 
-
-
-echo "<!--about ot get heartbeat --!>";
-        $result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo, DATETIME('now') as CurrentDBTime FROM HeartBeat where HeartBeatName='LastTimeLine'");
-
-        echo "<!--got heartbeat --!>";
-        echo "<!--got heartbeat2 --!>";
-        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-
-
-        echo "<!--got heartbeat 2--!>";
-        $lastHeartBeat = 'never';
-        $lastHeartBeatAgo = -100;
-        $currentDBTime = '';
-        foreach($rowarray as $row)
-        {
-
-                $lastHeartBeat = $row['HeartBeatTime'];
-                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
-                $currentDBTime = $row['CurrentDBTime'];
-        }
-
-        if ($lastHeartBeatAgo < 5) {
-                $heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
-        } else {
-                $heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
-        }
-
-        #render page
-
-        #top menu bar
-        echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-stash.php>STASH Console</a>&nbsp;|&nbsp;$instance_name&nbsp;|&nbsp;$heartBeatText</div>");
 
         echo("<br><br>");
 

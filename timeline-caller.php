@@ -41,6 +41,9 @@
 	$objThread = $tdb->getThreadByThreadID($threadID);
 
 
+	$objClone = $tdb->getCloneByThreadID($threadID);
+
+	echo("<!-- found clone $objClone->CloneID -->");	
 	$additional_number_id = 0;
 	#what is the number we are calling - this becomes the 'additionalNumberID' for callbacks etc.
         $additional_number_id = $tdb->getNumberIDFromCallTrack($callTrackID);;
@@ -85,6 +88,9 @@
 	if ($dialToneThreadID > 0) {
 		echo "\n<Gather method=\"GET\" action=\"$phpServer/timeline-inboundtone.php?ParentThreadID=$threadID&amp;ThreadID=$dialToneThreadID&amp;CallTrackID=$callTrackID&amp;AdditionalNumberID=$additional_number_id\">";
 	}
+
+	$mp3Server = $objClone->MP3URL;
+
 	echo "\n<Play>$mp3Server$objThread->mp3Name</Play>";
 	if ($dialToneThreadID > 0) {
 		echo "</Gather>";

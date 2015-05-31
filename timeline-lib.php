@@ -669,7 +669,7 @@
 		}
 
 
-		function getTwilioNumberByNumber($number) {
+		function getTwilioNumberByNumber($number,$cloneID) {
                         $objNumber = new TwilioNumber;
 
                         $sql = "SELECT TNumberID, TNumberName,PrefixWL  FROM TNumber  WHERE TNumber = ?";
@@ -691,9 +691,9 @@
                         #if we dont know the number - add it.
                         if ($numberID == 0) {
 
-                                $sql = "INSERT into TNumber (TNumber, TNumberName, IsActive, PrefixWL) values(?,?,1,'')";
+                                $sql = "INSERT into TNumber (TNumber, TNumberName, IsActive, PrefixWL,CloneID) values(?,?,1,'',?)";
                                 $q = $this->db->prepare($sql);
-                                $q->execute(array($number,'unknown twilio number'));
+                                $q->execute(array($number,'unknown twilio number',$cloneID));
 
 
                                 #and get the new numberID
@@ -719,6 +719,7 @@
                         $objNumber->TwilioNumberName = $numberName;
 			$objNumber->IsActive = $isActive;
 			$objNumber->PrefixWL = $prefixWL;
+			$objNumber->CloneID = $cloneID;
 
                         return $objNumber;
 

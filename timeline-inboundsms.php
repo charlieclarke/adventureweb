@@ -42,10 +42,10 @@
 	#see if we can find the number
 
 
-	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 
 	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
+	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber,$objClone->CloneID);
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber,$objClone->CloneID);
 
 	#get the DEFAULT thread

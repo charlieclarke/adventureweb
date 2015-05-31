@@ -39,10 +39,10 @@
 	#see if we can find the number
 
 
-	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 	echo "<!-- getting clone info for twilio SID $twilioSID -->\n";
 	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
+	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber,$objClone->CloneID);
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber,$objClone->CloneID );
 
 	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID and clone $objClone->CloneID  -->\n";

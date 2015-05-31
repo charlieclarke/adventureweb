@@ -48,8 +48,10 @@
 	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID and clone $objClone->CloneID  -->\n";
 	echo "<!-- the mp3server is $mp3Server AND $objClone->MP3URL -->\n";
 	#get the DEFAULT thread
+	#as of may 2015, we are removing the defaults - default is to do NOTHING.
 	
-        $defaultThreadID = $tdb->getDefaultThreadID('CALL');
+        #$defaultThreadID = $tdb->getDefaultThreadID('CALL');
+        $defaultThreadID = 1; #any non zero value- the idea being to use this parameter as state for did we find a match
 
 	#get all inbound threads associated with this number - including default, and all others that are not 
 	#even inbound calls etc. 
@@ -60,7 +62,7 @@
 	#loop through all threads.
 	#if they are NOT the default ID, AND they are relevent to us - then process.
 	$todoxml = "";
-	$todoxml = "<Say>your clone is" . $objClone->CloneName . "</Say> ";
+	#$todoxml = "<Say>your clone is" . $objClone->CloneName . "</Say> ";
 	$gather_pre="";	
 	$gather_post = "";
 	$num = sizeof($objThreadsArray);
@@ -69,7 +71,8 @@
 	#check to see if the thread is inbound, matches a number, and is not the default.
 	foreach($objThreadsArray as $objThread) {
 		echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->\n"); 
-		$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
+		#$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
+		$ofInterest=handle_thread($objThread, $objTwilioNumber, -1,$objInboundNumber);
 
 		if ($ofInterest > 0) {
 			echo "<!--this thread IS of interest-->";
@@ -89,7 +92,8 @@
 
 		foreach($objThreadsArray as $objThread) {
 			echo("<!-- got threadID of $objThread->ThreadID which has twilio number of $objThread->TwilioNumberID -->\n");
-			$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
+			#$ofInterest=handle_thread($objThread, $objTwilioNumber, $defaultThreadID,$objInboundNumber);
+			$ofInterest=handle_thread($objThread, $objTwilioNumber, -1,$objInboundNumber);
 
 
 			if ($ofInterest > 0) {
@@ -101,10 +105,15 @@
 
 	}
 
+	#ths s where it inserted the default thread.
+	#what we will do now, is that if the default thread ID is not 0 [0 means e marched]
+	# the we will do nothing...
 	if ($defaultThreadID > 0) {
-		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
-		do_thread_action($objMatchThread);
-		echo "<!--using the default threadID-->\n";
+		#$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
+		#do_thread_action($objMatchThread);
+		#echo "<!--using the default threadID-->\n";
+		echo "<!-- no matching thread found - do nothing. -->\n";
+		#$todoxml = $todoxml . "<Say voice='woman'>nothing found</Say>";
 	}
 
 

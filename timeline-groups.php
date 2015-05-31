@@ -147,11 +147,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		echo "<!-- delete number-->";
 		$numberID = intval($_GET["NumberID"]);
-		 $sql = "DELETE FROM Number where NumberID = ? and NumberID > 0"; 
+		 $sql = "DELETE FROM Number where NumberID = ? "; 
 		$st = $db->prepare($sql);
 		$st->execute(array($numberID));
 
-		echo "<!-- delete number-->";
+		echo "<!-- delete number-- $sql ID = $numberID>";
 		$sql = "DELETE FROM GroupNumber where GNNumberID = ?";
                 $st = $db->prepare($sql);
                 $st->execute(array($numberID));
@@ -210,6 +210,20 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
         }
+
+	if ($crudAction == 'CLEARGROUP') {
+
+
+                $groupID = intval($_GET["GroupID"]);
+
+                $sql = "DELETE FROM GroupNumber where GNGroupID = ?";
+                $st = $db->prepare($sql);
+                $st->execute(array($groupID));
+
+
+
+        }
+
         $updateGroupID = 0;
         if ($crudAction == 'EDITGROUP') {
 
@@ -244,7 +258,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage all the phone numbers we know about.</div>working on clone $clone->CloneName<br>");
 
-	$result = $db->query("select * from Number where NumberID > 0 and CloneID = $clone->CloneID");
+	$result = $db->query("select * from Number where NumberID > 0 and CloneID = $clone->CloneID order by NumberID desc");
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
@@ -381,7 +395,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                         echo "<option value='$numberrow[NumberID]_$groupID'>$numberrow[NumberDescription] ($numberrow[Number])</option>";
                 }
 
-        echo "</select><input id='submit$groupID' type='submit' value='add'>";
+        echo "</select><input id='submit$groupID' type='submit' value='add'>&nbsp;&nbsp;<a href='$this_url?secret=$secret_local&CRUD=CLEARGROUP&GroupID=$groupID'>clear group</a>";
 
 		$result = $db->query("select * from Number, GroupNumber where GroupNumber.GNNumberID = Number.NumberID and GNGroupID = " . $groupID );
 

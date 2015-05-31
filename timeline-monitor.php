@@ -227,6 +227,8 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		} else {
 			#not a new thread - actualy making them active or inactive.
 
+			#we removed this code - and you now click Y/N to acive/deactive
+/*
 			$activeIDs = $_GET['active_grp'];
 			  if(empty($activeIDs))
 			  {
@@ -255,6 +257,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 				$st = $db->prepare($sql);
 				$st->execute();
 			}
+*/
 
 		}
 
@@ -277,6 +280,29 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	}
+	if ($crudAction == 'ACTIVATETHREAD') {
+
+
+                $threadID = intval($_GET["ThreadID"]);
+                 $sql = "Update Thread set Active = 1 where ID = ?";
+
+                $st = $db->prepare($sql);
+                $st->execute(array($threadID));
+
+
+        }
+
+	if ($crudAction == 'DEACTIVATETHREAD') {
+
+
+                $threadID = intval($_GET["ThreadID"]);
+                 $sql = "Update Thread set Active = 0 where ID = ?";
+
+                $st = $db->prepare($sql);
+                $st->execute(array($threadID));
+
+
+        }
 	if ($globalAction == 'KILL') {
 		 $sql = "DELETE FROM TimeLine"; 
 
@@ -422,7 +448,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 
-	$dirlist = file_get_contents($mp3_url);
+	$dirlist = file_get_contents($clone->MP3URL);
 
 	preg_match_all("(\"\w+\.mp3\")", $dirlist, $out, PREG_PATTERN_ORDER); 
 	foreach($out[0] as $mp3) {
@@ -703,9 +729,12 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		
 		$tablebody .= "<tr class='" .$rowstyle . "'>";
 
-		$checked = $row['Active'] == 1?'checked':'';
+		#$checked = $row['Active'] == 1?'checked':'';
+		$checked = $row['Active'] == 1?"<a href='$this_url?secret=$secret_local&CRUD=DEACTIVATETHREAD&ThreadID=$row[id]'>Y</a>":"<a href='$this_url?secret=$secret_local&CRUD=ACTIVATETHREAD&ThreadID=$row[id]'>N</a>";
 
-		$checkboxcode = "<input type='checkbox' name='active_grp[]' value='active_$row[id]' $checked/>";
+		#$checkboxcode = "<input type='checkbox' name='active_grp[]' value='active_$row[id]' $checked/>";
+
+		$checkboxcode = "$checked";
 
 
 		$encodedMP3Name = htmlspecialchars($row['mp3Name']);
@@ -915,7 +944,8 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
 
 
 
-	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
+	#$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
+	$result = $db->query('select 	CallTrack.IsOutbound, 	Thread.ThreadDescription, Number.Number, Number.NumberDescription,  Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from CallTrack left join Thread on Thread.id = CallTrack.ThreadID inner join Number on CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
 
 
         echo("<table>");

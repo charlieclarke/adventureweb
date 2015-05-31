@@ -382,7 +382,15 @@
 
 			#deletes number, all threads with that number - and timeline!
 				
-			#TODO...
+			$sql= "delete from Thread where TNumberID = ?";
+			$st = $this->db->prepare($sql);
+                        $st->execute(array($numberID));	
+
+
+			$sql= "delete from TNumber where TNumberID = ?";
+			$st = $this->db->prepare($sql);
+                        $st->execute(array($numberID));	
+		
 
 
 

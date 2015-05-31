@@ -46,7 +46,10 @@
 
 	#get the DEFAULT thread
 	
-	$defaultThreadID = $tdb->getDefaultThreadID('SMS');
+	#may 2015- moremoved default threads. if you dont get a match, we'll do nothing.
+
+	#$defaultThreadID = $tdb->getDefaultThreadID('SMS');
+	$defaultThreadID = 1;#this is now a placeholder for 'found match'
 
 
 	#see if there are any inbound threads associated with this number
@@ -122,7 +125,6 @@
 	if ($defaultThreadID >0) {
 	
 		echo("<!-- doing null group NON BLANK bahvious -->"); 
-		#do default behaviour
 
 		foreach($objThreadsArray as $objThread) {
 			echo "<!--got thread-->\n";
@@ -173,17 +175,24 @@
         }
 
 	#AND NOW DEFAULT
+	/*
 	if ($defaultThreadID > 0) {
 		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
 			$note="SMS default behaviour";
 	}
+	*/
 
 	#deal with children
 
-	deal_with_children($objMatchThread, $objInboundNumber);
+	if ($defaultThreadID > 0) {
+		echo("\n<!-- doing default nothing found -->\n");
+		$tdb->insertIntoCallTrack(0, 0, $objInboundNumber->NumberID, '', "inbound SMS no match on $smsMessageBody", '',$smsMessageBody);
 
-	$tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', "inbound $note ($objMatchThread->mp3Name): $smsMessageBody", '',$smsMessageBody);
+	} else {
+		deal_with_children($objMatchThread, $objInboundNumber);
 
+		$tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', "inbound $note ($objMatchThread->mp3Name): $smsMessageBody", '',$smsMessageBody);
+	}
 
 
 

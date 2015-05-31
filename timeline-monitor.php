@@ -120,6 +120,19 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	
 	#perform actions etc.
+	if ($crudAction == 'NAMETONUMBER') {
+
+
+		$sql = "update Number set NumberDescription = ? where NumberID = ?";
+		$st = $db->prepare($sql);
+		$name = $_GET['Name'];
+		$numberID = intval($_GET['NumberID']);
+		echo "<!--making numberID $numberID be $name-->\n";
+		$st->execute(array($name, $numberID));
+
+	}
+	#may 2015 - remiving defaults
+	/*
 	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADSMS') {
 
                 $sql = "update DefaultInboundThread set ThreadID = ? where Type='SMS'";
@@ -137,17 +150,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $st->execute(array($threadID));
 
         }
-	if ($crudAction == 'NAMETONUMBER') {
-
-
-		$sql = "update Number set NumberDescription = ? where NumberID = ?";
-		$st = $db->prepare($sql);
-		$name = $_GET['Name'];
-		$numberID = intval($_GET['NumberID']);
-		echo "<!--making numberID $numberID be $name-->\n";
-		$st->execute(array($name, $numberID));
-
-	}
 
 	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADCALL') {
 
@@ -157,6 +159,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $st->execute(array($threadID));
 
         }
+	*/
 
 
 
@@ -542,6 +545,8 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 
 	#default inbound thread
+	#removed may 2015 - we no linger do efaults
+/*
 	echo("<form>");
 	echo("Set the Default Inbound SMS Thread:");
 	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSMS' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
@@ -604,6 +609,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</select><input type='submit' value='set'>";
 
         echo "</form>";
+*/
 
 
 

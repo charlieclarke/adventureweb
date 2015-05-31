@@ -105,7 +105,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$isActive = $_GET["TNumberIsActive"];
 		$prefixWL = $_GET["TNumberPrefixWL"];
 
-		$tdb->createTwilioNumber($newNumber, $newNumberName, $isActive,$prefixWL);
+		$tdb->createTwilioNumber($newNumber, $newNumberName, $isActive,$prefixWL,$clone->CloneID);
 
 
 	}
@@ -115,7 +115,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		echo "<!-- delete number-->";
 		$numberID = intval($_GET["TNumberID"]);
 
-		$tdb->deleteTwilioNumber($numberID);
+		$tdb->deleteTwilioNumber($numberID,$clone->CloneID);
 
 	}
 	$updateTNumberID = 0;
@@ -156,7 +156,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("<div class='tableTitle'>Twilio Management</div><br><div class='tableDescription' width=250px>Here we can manage out twilio numbers.</div><br>");
 
-	$twilioNumbers = $tdb->getAllTwilioNumbers();
+	$twilioNumbers = $tdb->getAllTwilioNumbersByCloneID($clone->CloneID);
 
 
 	echo("<form action='" . $this_page . "' method='get'>");

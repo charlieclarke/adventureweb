@@ -187,7 +187,6 @@
 
 			$stmt->execute(array($twilioSID));
 			  while ($row = $stmt->fetch()) {
-				echo("<!--got row - clone $clone->CloneID -->");
 
 
                                 $clone->CloneID = $row['CloneID'];
@@ -197,6 +196,7 @@
                                 $clone->UserName = $row['UserName'];
                                 $clone->Password = $row['Password'];
 				$clone->MP3URL = $row['MP3URL'];
+				echo("<!--got row - clone $clone->CloneID -->");
 			  }
 			#$clone->CloneName = $twilioSID;
 
@@ -366,31 +366,31 @@
 
 
 
-		function createTwilioNumber($number, $numberName, $isActive,$prefixWL) {
+		function createTwilioNumber($number, $numberName, $isActive,$prefixWL,$cloneID) {
 	
-			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL) values (?,?,?,?)";
+			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL,CloneID) values (?,?,?,?,?)";
 
 			$st = $this->db->prepare($sql);
-			$st->execute(array($number,$numberName, $isActive,$prefixWL));
+			$st->execute(array($number,$numberName, $isActive,$prefixWL,$cloneID));
 
 
 
 		}
 
 
-		function deleteTwilioNumber($numberID) {
+		function deleteTwilioNumber($numberID,$cloneID) {
 
 			#deletes number, all threads with that number - and timeline!
 				
-			$sql= "delete from Thread where TNumberID = ?";
+			$sql= "delete from Thread where id in (select thread.id from thread, tnumber where thread.tnumberID = tnumber.tnumberID and tnumber.tnumberid = ? and tnumber.cloneID = ?)";
 			$st = $this->db->prepare($sql);
-                        $st->execute(array($numberID));	
+                        $st->execute(array($numberID,$cloneID));	
 
 
-			$sql= "delete from TNumber where TNumberID = ?";
+			$sql= "delete from TNumber where TNumberID = ? and CloneID = ?";
 			$st = $this->db->prepare($sql);
-                        $st->execute(array($numberID));	
-		
+                        $st->execute(array($numberID, $cloneID));	
+
 
 
 
@@ -723,12 +723,12 @@
                         return $objNumber;
 
 		}
-		function getPhoneNumberByNumber($number) {
+		function getPhoneNumberByNumber($number,$cloneID) {
 			$objNumber = new PhoneNumber;
 
-			$sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ?";
+			$sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ? and CloneID = ?";
 			$q = $this->db->prepare($sql);
-			$q->execute(array($number));
+			$q->execute(array($number,$cloneID));
 
 			$q->setFetchMode(PDO::FETCH_BOTH);
 
@@ -743,15 +743,15 @@
 			#if we dont know the number - add it.
 			if ($numberID == 0) {
 
-				$sql = "INSERT into Number (Number, NumberDescription) values(?,?)";
+				$sql = "INSERT into Number (Number, NumberDescription,CloneID) values(?,?,?)";
 				$q = $this->db->prepare($sql);
-				$q->execute(array($number,'unknown inbound number'));
+				$q->execute(array($number,'unknown inbound number',$cloneID));
 
 
 				#and get the new numberID
-				$sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ?";
+				$sql = "SELECT NumberID, NumberDescription  FROM Number  WHERE Number = ? and CloneID = ?";
 				$q = $this->db->prepare($sql);
-				$q->execute(array($number));
+				$q->execute(array($number,$cloneID));
 
 				$q->setFetchMode(PDO::FETCH_BOTH);
 
@@ -767,6 +767,7 @@
 			$objNumber->NumberID = $numberID;
 			$objNumber->Number = $number;
 			$objNumber->NumberDescription = $numberDescription;
+			$objNumber->CloneID = $cloneID;
 
 			return $objNumber;
 

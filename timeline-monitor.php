@@ -813,7 +813,7 @@ if ($filterType == 'scene') {
 
 		echo "<select  style='width:100px;margin:5px 0 5px 0;' name='NewThreadDestNumber'>";
 
-                $result = $db->query("SELECT * from Groups where CloneID = $clone->CloneID ");
+                $result = $db->query("SELECT * from Groups where (CloneID = $clone->CloneID or GroupID = 0) ");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -951,16 +951,23 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
 
 
 	#$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
-	$result = $db->query('select 	CallTrack.IsOutbound, 	Thread.ThreadDescription, Number.Number, Number.NumberDescription,  Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from CallTrack left join Thread on Thread.id = CallTrack.ThreadID inner join Number on CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
+	$sql="select 	CallTrack.IsOutbound, 	Thread.ThreadDescription, Number.Number, Number.NumberDescription,  Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from CallTrack inner join Number on CallTrack.TrackNumberID = Number.NumberID left join Thread on Thread.id = CallTrack.ThreadID  where Number.CloneID = ? order by CallTrack.TrackID desc";
 
 
         echo("<table>");
         echo("<tr><th> </th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Status</th><th>Capture</th></tr>");
-        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+
+	$q = $db->prepare($sql);
+	$q->execute(array($clone->CloneID));
+
+
+	$q->setFetchMode(PDO::FETCH_BOTH);
+
 
 	$rownum=1;
-        foreach($rowarray as $row)
-        {
+        #foreach($rowarray as $row)
+	while($row = $q->fetch()){
                 $rowstyle = ($rownum++ % 2)==0?"d0":"d1";
                 $inout = ($row[IsOutbound]!=0)?"OUTBOUND":"INBOUND";
 

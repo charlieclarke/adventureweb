@@ -39,11 +39,11 @@
 	#see if we can find the number
 
 
-	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
 
 	echo "<!-- getting clone info for twilio SID $twilioSID -->\n";
 	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
+	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber,$objClone->CloneID );
 
 	echo "<!-- the twilio number is $twilionumber which is TNumberID $objTwilioNumber->TwilioNumberID and clone $objClone->CloneID  -->\n";
 	echo "<!-- the mp3server is $mp3Server AND $objClone->MP3URL -->\n";

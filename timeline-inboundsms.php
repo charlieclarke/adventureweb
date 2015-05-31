@@ -9,6 +9,7 @@
     $smsMessageBody = $_REQUEST['Body'];
 
 	$twilionumber = $_REQUEST['To'];
+	$twilioSID = $_REQUEST['AccountSid'];
 
 	#sort out config 
 
@@ -41,8 +42,11 @@
 	#see if we can find the number
 
 
-	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber);
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber);
+
+
+	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
+	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber,$objClone->CloneID);
 
 	#get the DEFAULT thread
 	

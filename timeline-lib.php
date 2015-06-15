@@ -672,7 +672,7 @@
 		function getTwilioNumberByNumber($number,$cloneID) {
                         $objNumber = new TwilioNumber;
 
-                        $sql = "SELECT TNumberID, TNumberName,PrefixWL  FROM TNumber  WHERE TNumber = ?";
+                        $sql = "SELECT TNumberID, TNumberName,PrefixWL, IsActive  FROM TNumber  WHERE TNumber = ?";
                         $q = $this->db->prepare($sql);
                         $q->execute(array($number));
 

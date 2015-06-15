@@ -263,11 +263,11 @@ function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwili
 
 			if ($posInString > 0) {
 				$ofInterest = 1;
-				echo"<!-- found $mp3Name in $smsMessageBody at $posInString -->";
+				echo"<!-- found $objThread->mp3Name in $smsMessageBody at $posInString -->";
 			} else {
 				$ofInterest=0;
 
-				echo"<!-- DID NOT find $mp3Name in $smsMessageBody at $posInString -->";
+				echo"<!-- DID NOT find $objThread->mp3Name in $smsMessageBody at $posInString -->";
 			}
 		}
 		

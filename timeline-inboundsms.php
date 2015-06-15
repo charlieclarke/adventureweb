@@ -241,7 +241,7 @@ function deal_with_children($objThread, $objNumber) {
 
 
 function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwilioNumber) {
-	echo "<!--dealing with threadID $threadID-->";
+	#echo "<!--dealing with threadID $threadID-->";
 	$dealWithChildren = 0;
 
 	global $tdb;

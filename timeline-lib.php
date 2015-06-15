@@ -449,7 +449,7 @@
 			$qq->execute(array($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails,$raw));
 			#now get the calLTrackID
 
-			$sql = "SELECT max(TrackID) from CallTrack where TrackNumberID = ?";
+			$sql = "SELECT max(TrackID) as TrackID from CallTrack where TrackNumberID = ?";
 
 			$q = $this->db->prepare($sql);
                         $q->execute(array($numberID));

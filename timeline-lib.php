@@ -320,6 +320,10 @@
 				$number->TwilioNumberName =  $row['TNumberName']; 
 				$number->IsActive = $row['IsActive'];
 				$number->PrefixWL = $row['PrefixWL'];
+				$number->TwitterConsumerKey = $row['TwitterConsumerKey'];
+				$number->TwitterConsumerKeySecret = $row['TwitterConsumerKeySecret'];
+				$number->TwitterAccessToken = $row['TwitterAccessToken'];
+				$number->TwitterAccessTokenSecret = $row['TwitterAccessTokenSecret'];
 
 				$numbers[] = $number;
 
@@ -353,6 +357,10 @@
                                 $number->TwilioNumberName =  $row['TNumberName'];
                                 $number->IsActive = $row['IsActive'];
                                 $number->PrefixWL = $row['PrefixWL'];
+				$number->TwitterConsumerKey = $row['TwitterConsumerKey'];
+                                $number->TwitterConsumerKeySecret = $row['TwitterConsumerKeySecret'];
+                                $number->TwitterAccessToken = $row['TwitterAccessToken'];
+                                $number->TwitterAccessTokenSecret = $row['TwitterAccessTokenSecret'];
 
 
 
@@ -366,12 +374,12 @@
 
 
 
-		function createTwilioNumber($number, $numberName, $isActive,$prefixWL,$cloneID) {
+		function createTwilioNumber($number, $numberName, $isActive,$prefixWL,$cloneID,$twitterConsumerKey, $twitterConsumerKeySecret,$twitterAccessToken,$twitterAccessTokenSecret) {
 	
-			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL,CloneID) values (?,?,?,?,?)";
+			$sql = "INSERT INTO TNumber (TNumber, TNumberName, IsActive,PrefixWL,CloneID,TwitterConsumerKey, TwitterConsumerKeySecret, TwitterAccessToken, TwitterAccessTokenSecret) values (?,?,?,?,?,?,?,?,?)";
 
 			$st = $this->db->prepare($sql);
-			$st->execute(array($number,$numberName, $isActive,$prefixWL,$cloneID));
+			$st->execute(array($number,$numberName, $isActive,$prefixWL,$cloneID,$twitterConsumerKey,$twitterConsumerKeySecret,$twitterAccessToken,$twitterAccessTokenSecret));
 
 
 
@@ -397,12 +405,12 @@
                 }
 
 	
-		function updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive,$prefixWL) {
+		function updateTwilioNumber($updateTNumberID, $updateNumber, $updateNumberName, $isActive,$prefixWL, $twitterConsumerKey, $twitterConsumerKeySecret,$twitterAccessToken,$twitterAccessTokenSecret) {
 
-			$sql = "UPDATE TNumber set TNumber = ?, TNumberName=?, IsActive = ?, PrefixWL = ?  where TNumberID = ?"; 
+			$sql = "UPDATE TNumber set TNumber = ?, TNumberName=?, IsActive = ?, PrefixWL = ?,TwitterConsumerKey = ?, TwitterConsumerKeySecret = ?, TwitterAccessToken=?, TwitterAccessTokenSecret=?  where TNumberID = ?"; 
 
 			$st = $this->db->prepare($sql);
-			$st->execute(array($updateNumber, $updateNumberName, $isActive, $prefixWL,$updateTNumberID));
+			$st->execute(array($updateNumber, $updateNumberName, $isActive, $prefixWL,$twitterConsumerKey,$twitterConsumerKeySecret,$twitterAccessToken,$twitterAccessTokenSecret,$updateTNumberID));
 
 		}
 
@@ -1225,6 +1233,11 @@
 		public $IsActive;
 		public $PrefixWL;
 		public $CloneID;
+		public $TwitterScreenName;
+		public $TwitterAccessToken;
+		public $TwitterAccessTokenSecret;
+		public $TwitterConsumerKey;
+		public $TwitterConsumerKeySecret;
 	}
 	
 	class SystemClone {

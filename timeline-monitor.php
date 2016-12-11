@@ -124,12 +124,12 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if ($crudAction == 'NAMETONUMBER') {
 
 
-		$sql = "update Number set NumberDescription = ? where NumberID = ?";
+		$sql = "update Number set NumberDescription = ? where NumberID = ? and CloneID= ?";
 		$st = $db->prepare($sql);
 		$name = $_GET['Name'];
 		$numberID = intval($_GET['NumberID']);
 		echo "<!--making numberID $numberID be $name-->\n";
-		$st->execute(array($name, $numberID));
+		$st->execute(array($name, $numberID,$clone->CloneID));
 
 	}
 	#may 2015 - remiving defaults
@@ -168,20 +168,20 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newNumber = $_GET["NewNumber"];
 		$newNumberDescription = $_GET["NewNumberDescription"];
 
-		$sql = "INSERT INTO Number (Number, NumberDescription) values (?,?)";
+		$sql = "INSERT INTO Number (Number, NumberDescription,CloneID) values (?,?,?)";
 
 		$st = $db->prepare($sql);
-		$st->execute(array($newNumber,$newNumberDescription));
+		$st->execute(array($newNumber,$newNumberDescription,$clone->CloneID));
 
 	}
 	if ($crudAction == 'DELETENUMBER') {
 
 
 		$numberID = intval($_GET["NumberID"]);
-		 $sql = "DELETE FROM Number where NumberID = ?"; 
+		 $sql = "DELETE FROM Number where NumberID = ? and CloneID=?"; 
 
 		$st = $db->prepare($sql);
-		$st->execute(array($numberID));
+		$st->execute(array($numberID,$clone->CloneID));
 	
 
 
@@ -468,7 +468,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo "<input name='TRIGGER' value='INSERTTIME' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
 
-                $result = $db->query("SELECT * from Thread");
+                $result = $db->query("SELECT * from Thread Join TNumber on Thread.TNumberID = TNumber.TNumberID where CloneID=$clone->CloneID ");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -491,7 +491,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "<input name='TRIGGER' value='KICKOFFNUMBER' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
 
 	$atID=ActionType::$KickOffActionType;
-                $result = $db->query("SELECT * from Thread where ActionType=$atID");
+                $result = $db->query("SELECT * from Thread  Join TNumber on Thread.TNumberID = TNumber.TNumberID where ActionType=$atID and CloneID=$clone->CloneID ");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -519,7 +519,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "<input name='TRIGGER' value='KICKOFFGROUP' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
 
         $atID=ActionType::$KickOffActionType;
-                $result = $db->query("SELECT * from Thread where ActionType=$atID");
+                $result = $db->query("SELECT * from Thread Join TNumber on Thread.TNumberID = TNumber.TNumberID where ActionType=$atID and CloneID=$clone->CloneID");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -529,7 +529,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</select>";
         echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupID'>";
         
-                $result = $db->query("SELECT * from Groups where GroupID>0");
+                $result = $db->query("SELECT * from Groups where GroupID>0 and CloneID=$clone->CloneID");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -544,74 +544,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo("</form>");
 
 	
-
-	#default inbound thread
-	#removed may 2015 - we no linger do efaults
-/*
-	echo("<form>");
-	echo("Set the Default Inbound SMS Thread:");
-	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSMS' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
-
-                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='SMS')");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
-                }
-                $result = $db->query("SELECT * from Thread");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
-                }
-
-        echo "</select><input type='submit' value='set'>";
-
-	echo "</form>";
-
-	echo("<form>");
-        echo("Set the Default Inbound Call Thread:");
-        echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADCALL' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
-
-                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='CALL')");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
-                }
-                $result = $db->query("SELECT * from Thread");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
-                }
-
-        echo "</select><input type='submit' value='set'>";
-
-        echo "</form>";
-	
-	echo("<form>");
-        echo("Set the Default Inbound SIM / Web Thread:");
-        echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSIM' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
-
-                $result = $db->query("SELECT * from Thread where id in (Select ThreadID from DefaultInboundThread where Type='SIM')");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>CURRENT: $row[id] ($row[ThreadDescription])</option>";
-                }
-                $result = $db->query("SELECT * from Thread");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        echo "<option value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
-                }
-
-        echo "</select><input type='submit' value='set'>";
-
-        echo "</form>";
-*/
-
 
 
 	###build the drop down for selecting ALL, a TNumberFIter or a Scene Filter

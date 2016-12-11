@@ -125,10 +125,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
                 $numberID = intval($_GET["GroupNumberID"]);
-                 $sql = "DELETE FROM GroupNumber where GroupNumberID = ?";
+                 $sql = "DELETE FROM GroupNumber where GroupNumberID = ? and GroupNumberID in (select GroupNumberID from GroupNumber join Number on GNNumberID = NumberID where CloneID = ?)";
 
                 $st = $db->prepare($sql);
-                $st->execute(array($numberID));
+                $st->execute(array($numberID,$clone->CloneID));
 
 
 
@@ -148,15 +148,15 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		foreach($descArray as $desc) {
 
-		$sql = "DELETE from GroupNumber where GNNumberID in (select  NumberID from Number where NumberDescription=?)";
+		$sql = "DELETE from GroupNumber where GNNumberID in (select  NumberID from Number where NumberDescription=? and CloneID=?)";
 		$st = $db->prepare($sql);
-		$st->execute(array($desc));
-		$sql = "DELETE from Number where NumberDescription=?";
+		$st->execute(array($desc, $clone->CloneID));
+		$sql = "DELETE from Number where NumberDescription=? and CloneID = ?";
 		$st = $db->prepare($sql);
-		$st->execute(array($desc));
-		$sql = "INSERT INTO Number (Number, NumberDescription) values (?,?)";
+		$st->execute(array($desc, $clone->CloneID));
+		$sql = "INSERT INTO Number (Number, NumberDescription, CloneID) values (?,?,?)";
 		$st = $db->prepare($sql);
-		$st->execute(array($newNumber,$desc));
+		$st->execute(array($newNumber,$desc,$clone->CloneID));
 		$sql = "INSERT INTO GroupNumber (GNNumberID, GNGroupID ) select NumberID, ? from Number where NumberDescription=?";
 		$st = $db->prepare($sql);
 		$st->execute(array($GroupNumberID,$desc));
@@ -178,10 +178,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 			if (preg_match("/active_(\d+)/",$num,$matches) > 0) {
 				$numID = $matches[1];
 
-				$sql = "DELETE from GroupNumber where GNNumberID = ? and GNGroupID = ?";
+				$sql = "DELETE from GroupNumber where GNNumberID = ? and GNGroupID = ? and GroupNumberID in (select GroupNumberID from GroupNumber join Number on GNNumberID = NumberID where CloneID = ?)";
 				$st = $db->prepare($sql);
-				$st->execute(array($numID, $GroupNumberID));
+				$st->execute(array($numID, $GroupNumberID,$clone->CloneID));
 				$sql = "INSERT INTO GroupNumber (GNNumberID, GNGroupID ) values (?,?)";
+				#this needs to be filtered. have been bad and havnt done it.
 				$st = $db->prepare($sql);
 				$st->execute(array($numID,$GroupNumberID));
 				echo($sql);
@@ -195,14 +196,14 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		echo "<!-- delete number-->";
 		$numberID = intval($_GET["NumberID"]);
-		 $sql = "DELETE FROM Number where NumberID = ? and NumberID > 0"; 
+		 $sql = "DELETE FROM Number where NumberID = ? and NumberID > 0 and CloneID=?"; 
 		$st = $db->prepare($sql);
-		$st->execute(array($numberID));
+		$st->execute(array($numberID,$clone->CloneID));
 
 		echo "<!-- delete number-->";
-		$sql = "DELETE FROM GroupNumber where GNNumberID = ?";
+		$sql = "DELETE FROM GroupNumber where GNNumberID = ? and GroupNumberID in (select GroupNumberID from GroupNumber join Number on GNNumberID = NumberID where CloneID = ?)";
                 $st = $db->prepare($sql);
-                $st->execute(array($numberID));
+                $st->execute(array($numberID,$clone->CloneID));
 	
 		echo "<!-- delete number-->";
 
@@ -224,10 +225,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		 $updateNumber = preg_replace('/\s+/', '', $updateNumber);
 
-		 $sql = "UPDATE Number set Number = ?, NumberDescription=? where NumberID = ?"; 
+		 $sql = "UPDATE Number set Number = ?, NumberDescription=? where NumberID = ? and cloneID=?"; 
 
 		$st = $db->prepare($sql);
-		$st->execute(array($updateNumber, $updateNumberDescription, $updateNumberID));
+		$st->execute(array($updateNumber, $updateNumberDescription, $updateNumberID,$clone->CloneID));
 	
 
 		$updateNumberID = 0;
@@ -237,23 +238,23 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if ($crudAction == 'CREATEGROUP') {
                 $newGroup = $_GET["NewGroupName"];
 
-                $sql = "INSERT INTO Groups (GroupName) values (?)";
+                $sql = "INSERT INTO Groups (GroupName,CloneID) values (?,CloneID)";
 
                 $st = $db->prepare($sql);
-                $st->execute(array($newGroup));
+                $st->execute(array($newGroup, $clone->CloneID));
 
         }
         if ($crudAction == 'DELETEGROUP') {
 
 
                 $groupID = intval($_GET["GroupID"]);
-                 $sql = "DELETE FROM Groups where GroupID = ? and GroupID > 0";
+                 $sql = "DELETE FROM Groups where GroupID = ? and GroupID > 0 and CloneID = ?";
                 $st = $db->prepare($sql);
-                $st->execute(array($groupID));
+                $st->execute(array($groupID,$clone->CloneID));
 
-		$sql = "DELETE FROM GroupNumber where GNGroupID = ?";
+		$sql = "DELETE FROM GroupNumber where GNGroupID = ? and GroupNumberID in (select GroupNumberID from GroupNumber join Number on GNNumberID = NumberID where CloneID = ?)";
                 $st = $db->prepare($sql);
-                $st->execute(array($groupID));
+                $st->execute(array($groupID,$clone->CloneID));
 
 
 
@@ -270,10 +271,10 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $updateGroupID = intval($_GET["UpdateGroupID"]);
                 $updateGroupName = $_GET["UpdateGroupName"];
 
-                 $sql = "UPDATE Groups set GroupName = ? where GroupID = ?";
+                 $sql = "UPDATE Groups set GroupName = ? where GroupID = ? and cloneID=?";
 
                 $st = $db->prepare($sql);
-                $st->execute(array($updateGroupName, $updateGroupID));
+                $st->execute(array($updateGroupName, $updateGroupID,$clone->CloneID));
 
 
                 $updateGroupID = 0;
@@ -293,7 +294,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	echo("<div class='tableTitle'>Number Management</div><br><div class='tableDescription' width=250px>Here we can manage  phone numbers in BULK.</div><br>");
 
-	$result = $db->query('select * from Number where NumberID > 0');
+	$result = $db->query('select * from Number where NumberID > 0 and CloneID = '. $clone->CloneID);
 
 	echo("<form action='" . $this_page . "' method='get'>");
 
@@ -337,7 +338,7 @@ function toggle(source) {
 	#draw a dropdown with all the groups.
 	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupNumberID'>";
 
-                $numberresult = $db->query("SELECT * from Groups where GroupID > 0");
+                $numberresult = $db->query("SELECT * from Groups where GroupID > 0 and CloneID=" . $clone->CloneID);
                 $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
                 foreach($numberarray as $numberrow) {
 
@@ -367,7 +368,7 @@ function toggle(source) {
 	//draw the drop down of which group we want to add all these into...
 	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupNumberID'>";
 
-                $numberresult = $db->query("SELECT * from Groups where GroupID > 0");
+                $numberresult = $db->query("SELECT * from Groups where GroupID > 0 and CloneID = ". $clone->CloneID);
                 $numberarray = $numberresult->fetchall(PDO::FETCH_ASSOC);
                 foreach($numberarray as $numberrow) {
 
@@ -388,7 +389,7 @@ function toggle(source) {
 
 
 
-	$sql = 'SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID order by StashKey, NumberDescription' ;
+	$sql = 'SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID where CloneID = ' . $clone->CloneID . ' order by StashKey, NumberDescription' ;
 	$result = $db->query($sql);
 
 	echo("<table>");

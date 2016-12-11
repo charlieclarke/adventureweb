@@ -782,6 +782,40 @@
 
 		}
 
+		function getPhoneNumbersByGroupIDCloneID($groupID,$cloneID) {
+			echo "<!--get numners by groupID: entered-->\n";
+                        $objNumber = new PhoneNumber;
+			$numbers = array();
+
+                        $sql = "SELECT Number, NumberID, NumberDescription  FROM Number, GroupNumber  WHERE Number.NumberID = GroupNumber.GNNumberID and GroupNumber.GNGroupID = ? and Number.CloneID=?";
+			echo "<!--get numners by groupID: sql is $sql-->\n";
+                        $q = $this->db->prepare($sql);
+                        $q->execute(array($groupID,$cloneID));
+			echo "<!--get numners by groupID: sql is finished-->\n";
+
+                        $q->setFetchMode(PDO::FETCH_BOTH);
+
+                        $numberID = 0;
+                        $numberDescription='unknown';
+                        // fetch
+                        while($r = $q->fetch()){
+                          $numberID = $r['NumberID'];
+                          $numberDescription = $r['NumberDescription'];
+				$number = $r['Number'];
+
+				$objNumber = new PhoneNumber;
+				$objNumber->NumberID = $numberID;
+				$objNumber->Number = $number;
+				$objNumber->NumberDescription = $numberDescription;
+
+				$numbers[] = $objNumber;
+
+                        }
+
+                        return $numbers;
+
+                }
+
 		function getPhoneNumbersByGroupID($groupID) {
 			echo "<!--get numners by groupID: entered-->\n";
                         $objNumber = new PhoneNumber;

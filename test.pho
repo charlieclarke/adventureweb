@@ -1,9 +1,3 @@
-<?php
-session_save_path("/tmp");
-session_start();
-
-?>
-
 <html>
 <head>
 <link rel='stylesheet' type='text/css' href='default.css' />
@@ -25,19 +19,44 @@ $username = $ini_array['userID'];
 $password = $ini_array['password'];
 
 
+
+
+echo "<!-- u:$username p:$password-->";
+
+if (!isset($_SERVER['PHP_AUTH_USER'])) {
+    header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+} else {
+	$login=0;
+	if ($_SERVER['PHP_AUTH_USER'] == $username) {
+		if ($_SERVER['PHP_AUTH_PW'] == $password) {
+			#all is good
+			$login=1;
+		}
+	}
+	if ($login == 0) {
+		header('WWW-Authenticate: Basic realm="My Realm"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Text to send if user hits Cancel button';
+    exit;
+	}
+}
+?>
+<?php 
+    header("content-type: text/html");
+
 	$secret = $_GET["secret"];
 	$triggerAction = $_GET['TRIGGER'];
 	$globalAction = $_GET['GLOBAL'];
 	$crudAction = $_GET['CRUD'];
 	$threadID = intval($_GET['ThreadID']);
 
-
-	$setFilter = $_GET["NumberSceneFilterID"];
 	
 
 	
 	$local_secret = $ini_array['sharedSecret'];
-	$secret_local = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
 	$mp3_url = $ini_array['mp3Server'];
@@ -60,80 +79,7 @@ $password = $ini_array['password'];
 	$db = new PDO('sqlite:'.$db_location);
 
 
-
-
-#beginning of the login code
-if (!isset($_SERVER['PHP_AUTH_USER'])) {
-    header('WWW-Authenticate: Basic realm="My Realm"');
-    header('HTTP/1.0 401 Unauthorized');
-    echo 'Text to send if user hits Cancel button';
-    exit;
-} else {
-	$login=0;
-
-	$username = $_SERVER['PHP_AUTH_USER'];
-	$password = $_SERVER['PHP_AUTH_PW'];
-
-	$clone = $tdb->getCloneByUser($username, $password);
-
-
-	if ($clone->CloneID >= 0) {
-		$login=1;
-	}
-	if ($login == 0) {
-		header('WWW-Authenticate: Basic realm="My Realm"');
-    header('HTTP/1.0 401 Unauthorized');
-    echo 'Text to send if user hits Cancel button';
-    exit;
-	}
-
-}
-#end of the login code
-?>
-<?php 
-    header("content-type: text/html");
-
-#figure out filters and stuff
-
-	$filterType = $_SESSION["FilterType"];
-	$filterID = intval($_SESSION["FilterID"]);
-
-	if (!in_array($filterType, array("scene","number","all"))) {
-		$filterType = "all";
-		$filterID = 0;
-
-	}
-
-	if (preg_match("/SCENE(\d+)/",$setFilter,$matches)) {
-		$filterType="scene";
-		$filterID = $matches[1];
-	} elseif (preg_match("/TNUMBER(\d+)/",$setFilter,$matches)) {
-                $filterType="number";
-                $filterID = $matches[1];
-        } elseif (preg_match("/ALL/",$setFilter,$matches)) {
-                $filterType="all";
-                $filterID = 0;
-        } 
-
-	$_SESSION["FilterType"] = $filterType;
-	$_SESSION["FilterID"] = $filterID;
-	
-
-	
 	#perform actions etc.
-	if ($crudAction == 'NAMETONUMBER') {
-
-
-		$sql = "update Number set NumberDescription = ? where NumberID = ?";
-		$st = $db->prepare($sql);
-		$name = $_GET['Name'];
-		$numberID = intval($_GET['NumberID']);
-		echo "<!--making numberID $numberID be $name-->\n";
-		$st->execute(array($name, $numberID));
-
-	}
-	#may 2015 - remiving defaults
-	/*
 	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADSMS') {
 
                 $sql = "update DefaultInboundThread set ThreadID = ? where Type='SMS'";
@@ -151,6 +97,17 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $st->execute(array($threadID));
 
         }
+	if ($crudAction == 'NAMETONUMBER') {
+
+
+		$sql = "update Number set NumberDescription = ? where NumberID = ?";
+		$st = $db->prepare($sql);
+		$name = $_GET['Name'];
+		$numberID = intval($_GET['NumberID']);
+		echo "<!--making numberID $numberID be $name-->\n";
+		$st->execute(array($name, $numberID));
+
+	}
 
 	if ($crudAction == 'UPDATEDEFAULTINBOUNDTHREADCALL') {
 
@@ -160,7 +117,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $st->execute(array($threadID));
 
         }
-	*/
 
 
 
@@ -197,7 +153,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$newThreadDescription = $_GET["NewThreadDesc"];
 		$newActionID = intval($_GET["NewActionID"]);
 		$newThreadNumber = $_GET["NewThreadDestNumber"];
-		$newThreadSceneID = $_GET["NewThreadSceneID"];
 		$newThreadFrequency = $_GET["NewFrequency"];
 		$newThreadMp3 = $_GET["NewMp3Name"];
 		$newChildThreadID_list =$_GET["NewChildThreadID"];
@@ -211,7 +166,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		#removing < and >  input validation - and also doing output encoding when rendering.
 		#this is so we can have HTML in the questions...
-		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9?_ @#%\[\]\.\(\)%&-<>]/s', '', $newThreadMp3);
+		$newThreadMp3 = preg_replace('/[^a-zA-Z0-9_ %\[\]\.\(\)%&-<>]/s', '', $newThreadMp3);
 
 		if ($newChildThreadID == "") {
 			$newChildThreadID = 0;
@@ -224,15 +179,13 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 			$st = $db->prepare($sql);
 			$st->execute(array($newThreadID));
 
-			$sql = "INSERT INTO Thread (id, TNumberID, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute,SceneID) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+			$sql = "INSERT INTO Thread (id, TNumberID, ThreadDescription, ActionType, DestNumber, FrequencyMinutes, mp3Name, ChildThreadID,StartTimeHour, StopTimeHour,StartTimeMinute, StopTimeMinute) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 			$st = $db->prepare($sql);
-			$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute,$newThreadSceneID));
+			$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute));
 		} else {
 			#not a new thread - actualy making them active or inactive.
 
-			#we removed this code - and you now click Y/N to acive/deactive
-/*
 			$activeIDs = $_GET['active_grp'];
 			  if(empty($activeIDs))
 			  {
@@ -261,7 +214,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 				$st = $db->prepare($sql);
 				$st->execute();
 			}
-*/
 
 		}
 
@@ -284,29 +236,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 	}
-	if ($crudAction == 'ACTIVATETHREAD') {
-
-
-                $threadID = intval($_GET["ThreadID"]);
-                 $sql = "Update Thread set Active = 1 where ID = ?";
-
-                $st = $db->prepare($sql);
-                $st->execute(array($threadID));
-
-
-        }
-
-	if ($crudAction == 'DEACTIVATETHREAD') {
-
-
-                $threadID = intval($_GET["ThreadID"]);
-                 $sql = "Update Thread set Active = 0 where ID = ?";
-
-                $st = $db->prepare($sql);
-                $st->execute(array($threadID));
-
-
-        }
 	if ($globalAction == 'KILL') {
 		 $sql = "DELETE FROM TimeLine"; 
 
@@ -436,31 +365,57 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		}
 	}
 
+	#get last heartbeat from db
 
-	echo("<!--about to call render menu bar--!>");
-	echo($tdb->renderMenuBar($base_url, $instance_name));
+			
+	echo "<!--about ot get heartbeat --!>";
+	$result = $db->query("SELECT HeartBeatTime, strftime('%s','now') - strftime('%s',HeartBeatTime) as LastHeartBeatAgo, DATETIME('now') as CurrentDBTime FROM HeartBeat where HeartBeatName='LastTimeLine'");
+
+	echo "<!--got heartbeat --!>";
+	echo "<!--got heartbeat2 --!>";
+        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+
+
+	echo "<!--got heartbeat 2--!>";
+	$lastHeartBeat = 'never';
+	$lastHeartBeatAgo = -100;
+	$currentDBTime = '';
+        foreach($rowarray as $row)
+        {
+
+                $lastHeartBeat = $row['HeartBeatTime'];
+                $lastHeartBeatAgo = $row['LastHeartBeatAgo'];
+                $currentDBTime = $row['CurrentDBTime'];
+	} 
+
+	if ($lastHeartBeatAgo < 2) {
+		$heartBeatText = "TimeLine Active and OK - $lastHeartBeat";
+	} else {
+		$heartBeatText = "TimeLine Appears Down - $lastHeartBeat";
+	}
+
+	#render page
+
+	#top menu bar
+	echo("<div class='menuBar'><a href=$base_url/timeline-monitor.php>Monitor and Manager Threads</a>&nbsp;|&nbsp;<a href=$base_url/timeline-groups.php>Manage Numbers and Groups</a>&nbsp;|&nbsp;<a href=$base_url/timeline-twilio.php>Manage Twilio Account</a>&nbsp;|&nbsp;<a href=$base_url/timeline-bulk.php>Manage Bulk Agents</a>&nbsp;|&nbsp;<a href=$base_url/timeline-stash.php>STASH Console</a>&nbsp;|&nbsp;$instance_name&nbsp|&nbsp$heartBeatText</div>");
 	echo("<br><br>");
 
 
-	echo("<form action='" . $this_url . "' method='get'>");
+	echo("<form action='" . $this_page . "' method='get'>");
 
 
-	echo("<br><br>");
-	 echo("<div class='tableTitle'>Working as $clone->CloneName</div><br>");
 	echo("<br><br>");
 	 echo("<div class='tableTitle'>List of mp3s</div><br>");
 
 
 
-	$dirlist = file_get_contents($clone->MP3URL);
+	$dirlist = file_get_contents($mp3_url);
 
 	preg_match_all("(\"\w+\.mp3\")", $dirlist, $out, PREG_PATTERN_ORDER); 
 	foreach($out[0] as $mp3) {
 		echo($mp3 . ", ");
 
 	}
-
-	$currentDBTime = $tdb->getDBTime();
 
 	echo("<br><br>");
 	echo("Insert Thread at a specific Time onto TimeLine: Time in GMT to kick off insert. Format is [YYYY-MM-DD hh:mm:ss]");
@@ -484,7 +439,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 	#SEND thread
 
-	echo("<form action='" . $this_url . "' method='get'>");
+	echo("<form action='" . $this_page . "' method='get'>");
         echo("Send KickOff Thread to a number at a specific Time onto TimeLine: Time in GMT to kick off insert.");
         echo("<input name='INSERTTIME' size=23 value='$currentDBTime'>");
 
@@ -501,11 +456,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</select>";
 	echo "<select  style='width:100px;margin:5px 0 5px 0;' name='AdditionalNumberID'>";
         
-                $result = $db->query("SELECT * from Number where NumberID>0 and CloneID = " . $clone->CloneID);
+                $result = $db->query("SELECT * from Number where NumberID>0");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
-                        echo "<option value='$row[NumberID]'>$row[NumberID] ($row[NumberDescription])</option>";
+                        echo "<option value='$row[NumberID]'>$row[id] ($row[NumberDescription])</option>";
                 }
 
         echo "</select>";
@@ -513,7 +468,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	echo "</form>";
 	echo "<br>";
 
-	echo("<form action='" . $this_url . "' method='get'>");        echo("Send KickOff Thread to a GROUP  at a specific Time onto TimeLine: Time in GMT to kick off insert.");
+	echo("<form action='" . $this_page . "' method='get'>");        echo("Send KickOff Thread to a GROUP  at a specific Time onto TimeLine: Time in GMT to kick off insert.");
         echo("<input name='INSERTTIME' size=23 value='$currentDBTime'>");
 
         echo "<input name='TRIGGER' value='KICKOFFGROUP' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
@@ -533,7 +488,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
-                        echo "<option value='$row[GroupID]'>$row[GroupID] ($row[GroupName])</option>";
+                        echo "<option value='$row[GroupID]'>$row[id] ($row[GroupName])</option>";
                 }
     
         echo "</select>";
@@ -546,8 +501,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 
 	#default inbound thread
-	#removed may 2015 - we no linger do efaults
-/*
 	echo("<form>");
 	echo("Set the Default Inbound SMS Thread:");
 	echo "<input name='CRUD' value='UPDATEDEFAULTINBOUNDTHREADSMS' type='hidden'><select  style='width:100px;margin:5px 0 5px 0;' name='ThreadID'>";
@@ -610,103 +563,19 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
         echo "</select><input type='submit' value='set'>";
 
         echo "</form>";
-*/
 
+	echo "<form action='" . $this_page . "' method='get'><table>";
 
-
-	###build the drop down for selecting ALL, a TNumberFIter or a Scene Filter
-
-	echo "<!--about to get all numbers-->";
-	$allnumbers = $tdb->getAllTwilioNumbersByCloneID($clone->CloneID);
-	$allscenes = $tdb->getAllScenes($clone->CloneID);
-
-	echo "<form action='" . $this_url . "' method='get'>";
-
-
-
-
-
-	if ($filterType == "all" ) {
-		$selected = "selected";
-	} else {
-		$selected = "";
-                }
-
-	echo "<select $selected name='NumberSceneFilterID'>\n\n";
-
-	echo "<option value='ALL'>All Scenes and Numbers</option>";
-
-	foreach ($allscenes as $scene) {
-
-		if ($filterType == "scene" && intval($filterID) == intval($scene->SceneID)) {
-			$selected = "selected";
-		} else {
-			$selected = "";
-		}
-                echo "<option $selected value='SCENE$scene->SceneID'>Scene - $scene->SceneName</option>";
-
-        }
-
-	foreach ($allnumbers as $tnumber) {
-
-		if ($filterType == "number" && $filterID == $tnumber->TwilioNumberID) {
-                        $selected = "selected";
-                } else {
-                        $selected = "";
-                }
-		echo "<option $selected value='TNUMBER$tnumber->TwilioNumberID'>Number - $tnumber->TwilioNumberName</option>";
-
-	}
-
-
-	echo "</select>";
-	echo "<input type='submit' value='apply filter'>";
-
-	echo "</form><!--end of the filter form-->";
-
-	##render the thread table
-	
-	echo "<form action='" . $this_url . "' method='get'><table>";
-
-
-	if ($filterType == 'scene') {
-		$queryFilter = " and Thread.SceneID = $filterID";
-	} elseif ($filterType == 'number') {
-                $queryFilter = " and TNumber.TNumberID = $filterID";
-        } else {
-		$queryFilter = "";
-	}
-
-
-	#dirty hack to get maxID - this needs to be done by the api 	
-	$result = $db->query("select max(id) as maxid from Thread");
-	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-	foreach($rowarray as $row) //loop for rendering each row
-        {
-		$bigmaxID = $row['maxid'];
-	}
-	
-	
-	$threadquery = "SELECT * FROM Thread,Action, Groups, TNumber, Scene where Thread.SceneID = Scene.SceneID and Scene.CloneID = $clone->CloneID and Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID and Thread.TNumberID = TNumber.TNumberID" . $queryFilter;
-
-	$result = $db->query($threadquery);
-
-
-	echo "\n\n\n<!-- querty to gt threads $threadquery -->\n\n";
-
-	$tablehead = "<tr><th>Active</th><th>ID</th><th >Twilio Number<br>Group Filter<br>Scene</th><th>Description</th><th width=50>Type</th><th style='width:50px' >MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>";
-	echo $tablehead;
-
-	$tablebody = "";
+	$result = $db->query('SELECT * FROM Thread,Action, Groups, TNumber where Thread.DestNumber = Groups.GroupID and Thread.ActionType = Action.ActionTypeID and Thread.TNumberID = TNumber.TNumberID');
+	echo("<tr><th>Active</th><th>ID</th><th>Twilio Number</th><th>Description</th><th>Type</th><th>Phone Number Group</th><th>MP3 / message</th><th>Repeat Minutes</th><th>ChildThreadID</th><th>Time Range</th><th>Trigger</th></tr>");
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 	$maxID = 0;	
-//echo "<br><br>";
+echo "<br><br>";
 	
 	$default_thread_description='thread description';
 	$default_action_type=1;
 	$default_twilio_number=0;
 	$default_group_id = 0;
-	$default_scene_id = 0;
 	$default_mp3_name = 'mp3 name / text';
 	$default_frequency_minutes = 0;
 	$default_child_thread_id_1 = 0;
@@ -717,39 +586,22 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$default_stop_time_minute = 59;
 	
 	$rownum=0;
-
-	$sortcolumn = "id";
-	$sortdir = "asc";
-	$sortdir = "desc";
-
-	$keyarray = array();
-	
-	foreach ($rowarray as $key => $row)
-	{
-	    $keyarray[$key] = $row[$sortcolumn];
-	}
-
-	array_multisort($keyarray, $sortdir == 'asc' ? SORT_ASC :SORT_DESC, $rowarray);
-
-	foreach($rowarray as $row) //loop for rendering each row
+	foreach($rowarray as $row)
 	{
 		$rowstyle = (++$rownum % 2)==0?"d0":"d1";
 		
-		$tablebody .= "<tr class='" .$rowstyle . "'>";
+		echo "<tr class='" .$rowstyle . "'>";
 
-		#$checked = $row['Active'] == 1?'checked':'';
-		$checked = $row['Active'] == 1?"<a href='$this_url?secret=$secret_local&CRUD=DEACTIVATETHREAD&ThreadID=$row[id]'>Y</a>":"<a href='$this_url?secret=$secret_local&CRUD=ACTIVATETHREAD&ThreadID=$row[id]'>N</a>";
+		$checked = $row['Active'] == 1?'checked':'';
 
-		#$checkboxcode = "<input type='checkbox' name='active_grp[]' value='active_$row[id]' $checked/>";
-
-		$checkboxcode = "$checked";
+		$checkboxcode = "<input type='checkbox' name='active_grp[]' value='active_$row[id]' $checked/>";
 
 
 		$encodedMP3Name = htmlspecialchars($row['mp3Name']);
 		$insertLink = ($row['ActionType']==ActionType::$KickOffActionType)?"insert":"<a href='$this_url?secret=$secret_local&TRIGGER=INSERT&ThreadID=$row[id]'>insert</a>";
-		$tablebody .= "<td>$checkboxcode</td><td>$row[id]</td><td>Number: $row[TNumberID] $row[TNumberName]<br><br>Group: $row[GroupName]<br><br>Scene: $row[SceneName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td>$encodedMP3Name</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
-		$tablebody .= "</tr>";
-		$maxID = max($maxID,$row['id']);
+		echo "<td>$checkboxcode</td><td>$row[id]</td><td>$row[TNumberID] $row[TNumberName]</td><td>$row[ThreadDescription]</td><td>$row[ActionType] ($row[ActionName])</td><td> $row[GroupName]</td><td>$encodedMP3Name</td><td>$row[MinutesBeforeText]$row[FrequencyMinutes]$row[MinutesAfterText]</td><td>$row[ChildThreadID]</td><td>$row[StartTimeHour]:$row[StartTimeMinute] -&gt; $row[StopTimeHour]:$row[StopTimeMinute]</td><td>$insertLink|<a href='$this_url?secret=$secret_local&TRIGGER=REMOVE&ThreadID=$row[id]'>remove</a>|<a href='$this_url?secret=$secret_local&CRUD=DELETETHREAD&ThreadID=$row[id]'>delete</a>|<a href='$this_url?secret=$secret_local&CRUD=EDITTHREAD&ThreadID=$row[id]'>edit</a></td>";
+		echo "</tr>";
+		$maxID = $row[id];
 
 
 		#capture details if we are editing...
@@ -758,8 +610,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 			$default_thread_description=$row['ThreadDescription'];
 			$default_twilio_number=$row['TNumberID'];
 			$default_action_type=$row['ActionType'];
-			$default_group_id = $row['GroupID'];
-			$default_scene_id = $row['SceneID'];
+			$default_group_id = $row[GroupID];
 			$default_mp3_name = $row['mp3Name'];
 			$default_frequency_minutes = $row['FrequencyMinutes'];
 			$default_child_thread_id = explode(',',$row['ChildThreadID']);
@@ -771,14 +622,13 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 		} 
-	} //end of loop for rentering each row
+	}
 	$rowstyle = (($maxID+1) % 2)==0?"d0":"d1";
 
 	if ($editThreadID > 0) {
 		$new_thread_id = $editThreadID;
 	} else {
 		$new_thread_id = $maxID + 1;
-		$new_thread_id = $bigmaxID + 1;
 	}
 	
 	echo "<tr class='" .$rowstyle . "'>";
@@ -792,18 +642,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 		$selected = (0 == $default_twilio_number)?'selected':'';
 		echo "<option $selected value='0'>Choose a Number</option>";
-
-
-if ($filterType == 'scene') {
-	$queryFilter = "";
-} elseif ($filterType == 'number') {
-	$queryFilter = " and TNumber.TNumberID = $filterID";
-} else {
-	$queryFilter = "";
-}
-
-
-                $result = $db->query("SELECT * from TNumber where cloneID = $clone->CloneID $queryFilter");
+                $result = $db->query("SELECT * from TNumber");
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
@@ -811,39 +650,11 @@ if ($filterType == 'scene') {
 
                         echo "<option $selected value='$row[TNumberID]'>$row[TNumberID] ($row[TNumberName])</option>";
                 }
-		echo "</select>";
-		echo "<BR><BR>";
-
-		echo "<select  style='width:100px;margin:5px 0 5px 0;' name='NewThreadDestNumber'>";
-
-                $result = $db->query("SELECT * from Groups where (CloneID = $clone->CloneID or GroupID = 0) ");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        $selected = ($row['GroupID'] == $default_group_id)?'selected':'';
-                        echo "<option $selected value='$row[GroupID]'>$row[GroupName] </option>";
-                }
-
-		echo "</select>";
-
-		echo "<BR><BR>";
-
-		echo "<select  style='width:100px;margin:5px 0 5px 0;' name='NewThreadSceneID'>";
-
-                $result = $db->query("SELECT * from Scene where CloneID = $clone->CloneID ");
-                $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
-                foreach($rowarray as $row) {
-
-                        $selected = ($row['SceneID'] == $default_scene_id)?'selected':'';
-                        echo "<option $selected value='$row[SceneID]'>$row[SceneName] </option>";
-                }
-
-                echo "</select>";
 
         echo "</td>";
 
 
-	echo "<td><input type='text' name='NewThreadDesc' value=" . json_encode($default_thread_description) . "/></td>";
+	echo "<td><input type='text' name='NewThreadDesc' value='$default_thread_description'/></td>";
 	echo "<td><select name='NewActionID'>";
 
 		$result = $db->query("SELECT * from Action");
@@ -857,35 +668,29 @@ if ($filterType == 'scene') {
 
 	echo "</td>";
 	#echo "<td><input type='text' name='NewThreadDestNumber' value='+44 xxxx xxxx xxxx '/></td>";
-	echo "<td><input type='text' name='NewMp3Name' value=" . json_encode($default_mp3_name) . "/></td>";
-	echo "<td><input type='text' name='NewFrequency' value='$default_frequency_minutes'/></td>";
-	echo "<td><select  style='width:200px;margin:5px 0 5px 0;' name='NewChildThreadID[]' multiple='multiple' size=3>";
+	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewThreadDestNumber'>";
 
-		echo "<option value='0'>0 (no child thread)</option>";
-		if ($filterType == 'scene') {
-			$getChildThreadQuery = "SELECT thread.id, thread.ThreadDescription, scene.sceneID = $filterID as orderfilter from thread join Scene on Thread.SceneID = Scene.SceneID where Scene.cloneID = $clone->CloneID order by orderfilter desc, thread.id desc";
-		} elseif ($filterType == 'number') {
-			$getChildThreadQuery = "SELECT thread.id, thread.ThreadDescription, Thread.TNumberID = $filterID as orderfilter  from Thread join Scene on Thread.SceneID = Scene.SceneID where Scene.cloneID = $clone->CloneID order by orderfilter desc, thread.id desc";
-		} else {
-			$getChildThreadQuery = "SELECT thread.id, thread.ThreadDescription, 0 as orderfilter  from Thread join Scene on Thread.SceneID = Scene.SceneID where Scene.cloneID = $clone->CloneID order by thread.id desc";
-		}
-
-		$result = $db->query($getChildThreadQuery);
+		$result = $db->query("SELECT * from Groups");
 		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 		foreach($rowarray as $row) {
-			#$selected = ($row['id']==$default_child_thread_id)?'selected':'';
-			if ($editThreadID > 0) {
-				$selected = (in_array($row['id'],$default_child_thread_id))?'selected':'';
-			} else {
-				$selected = '';
-			}
 
+			$selected = ($row['GroupID'] == $default_group_id)?'selected':'';
+			echo "<option $selected value='$row[GroupID]'>$row[GroupName] </option>";
+		}
 
-			$style = $row['orderfilter']==1?'color=red':'';
-			$prefix = $row['orderfilter']==1?'*':'&nbsp;';
+	echo "</select>";
+	echo "</td>";
+	echo "<td><input type='text' name='NewMp3Name' value='$default_mp3_name'/></td>";
+	echo "<td><input type='text' name='NewFrequency' value='$default_frequency_minutes'/></td>";
+	echo "<td><select  style='width:100px;margin:5px 0 5px 0;' name='NewChildThreadID[]' multiple='multiple' size=3>";
 
+		echo "<option value='0'>0 (no child thread)</option>";
+		$result = $db->query("SELECT * from Thread");
+		$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
+		foreach($rowarray as $row) {
+			$selected = (in_array($row['id'],$default_child_thread_id))?'selected':'';
 
-			echo "<option $selected  $style   value='$row[id]'>$row[id] ($prefix $row[ThreadDescription])</option>";
+			echo "<option $selected  value='$row[id]'>$row[id] ($row[ThreadDescription])</option>";
 		}
 
 	echo "</select>";
@@ -897,7 +702,6 @@ if ($filterType == 'scene') {
 	echo "</td>";
 	echo "<td><input type='submit' value='Submit' /></td>";
 	echo "</tr>";
-	echo $tablebody;
 	echo("</table>");
 	echo("</form>");
 
@@ -958,26 +762,18 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
 
 
 
-	#$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
-	$sql="select 	CallTrack.IsOutbound, 	Thread.ThreadDescription, Number.Number, Number.NumberDescription,  Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from CallTrack inner join Number on CallTrack.TrackNumberID = Number.NumberID left join Thread on Thread.id = CallTrack.ThreadID  where Number.CloneID = ? order by CallTrack.TrackID desc";
+	$result = $db->query('select CallTrack.IsOutbound, Thread.ThreadDescription,Number.Number,Number.NumberDescription, Thread.mp3Name, CallTrack.TrackNumberID, CallTrack.TrackTime, CallTrack.StatusText from Thread, Number, CallTrack where Thread.id = CallTrack.ThreadID and CallTrack.TrackNumberID = Number.NumberID order by CallTrack.TrackID desc');
 
 
         echo("<table>");
         echo("<tr><th> </th><th>Time</th><th>Thread Description</th><th>Number</th><th>MP3 / Text</th><th>Status</th><th>Capture</th></tr>");
-
-
-	$q = $db->prepare($sql);
-	$q->execute(array($clone->CloneID));
-
-
-	$q->setFetchMode(PDO::FETCH_BOTH);
-
+        $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
 
 	$rownum=1;
-        #foreach($rowarray as $row)
-	while($row = $q->fetch()){
+        foreach($rowarray as $row)
+        {
                 $rowstyle = ($rownum++ % 2)==0?"d0":"d1";
-                $inout = ($row['IsOutbound']!=0)?"OUTBOUND":"INBOUND";
+                $inout = ($row[IsOutbound]!=0)?"OUTBOUND":"INBOUND";
 
                 echo "<tr class='" .$rowstyle . "'>";
 		$capture = "";

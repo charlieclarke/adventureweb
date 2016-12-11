@@ -102,7 +102,8 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$base_url = $ini_array['phpServer'];
 	$instance_name = $ini_array['instanceName'];
 	
-	$this_url = $base_url . "/timeline-groups.php";
+	$this_url = $base_url . "/timeline-stash.php";
+	$this_page = $base_url . "/timeline-stash.php";
 	
 
 	#if ($secret != $local_secret) {
@@ -116,6 +117,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 $tdb = new DB($db_location);
         $tdb->init();
 
+$currentDBTime = $tdb->getDBTime();
 
 #beginning of the login code
 if (!isset($_SERVER['PHP_AUTH_USER'])) {
@@ -152,7 +154,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 		echo "<!-- delete number-->";
-		 $sql = "DELETE FROM Stash"; 
+		 $sql = "DELETE FROM Stash where NumberID in (select NumberID from Number where CloneID=" . $clone->CloneID . ")"; 
 		$st = $db->prepare($sql);
 		$st->execute();
 
@@ -171,7 +173,7 @@ if ($triggerAction == 'KICKOFFGROUP') {
                         #we have a valid kick to insert
                         #get all numbers in the group.
 
-                        $objNumberArray = $tdb->getPhoneNumbersByGroupID($groupID);
+                        $objNumberArray = $tdb->getPhoneNumbersByGroupIDCloneID($groupID,$clone->CloneID);
                         foreach($objNumberArray as $objNumber) {
                                 $tdb->insertToTimeLineTime($threadID, $triggerDate, $objNumber->NumberID,"sent from monitor page as part of group $groupID");
                         }
@@ -206,11 +208,11 @@ echo("<form action='" . $this_page . "' method='get'>");        echo("Send KickO
         echo "</select>";
         echo "<select  style='width:100px;margin:5px 0 5px 0;' name='GroupID'>";
 
-                $result = $db->query("SELECT * from Groups where GroupID>0");
+                $result = $db->query("SELECT * from Groups where GroupID>0 and CloneID = " . $clone->CloneID);
                 $rowarray = $result->fetchall(PDO::FETCH_ASSOC);
                 foreach($rowarray as $row) {
 
-                        echo "<option value='$row[GroupID]'>$row[id] ($row[GroupName])</option>";
+                        echo "<option value='$row[GroupID]'>$row[GroupID] ($row[GroupName])</option>";
                 }
 
         echo "</select>";
@@ -224,7 +226,7 @@ echo("<form action='" . $this_page . "' method='get'>");        echo("Send KickO
 echo("<form action='" . $this_page . "' method='get'>");  echo "<input name='CRUD' value='DELETESTASH' type='hidden'>\n\n";
 echo "<input type='submit' value='DELETE the STASH'>";
 
-	$sql = 'SELECT Number, NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID order by StashKey, NumberDescription' ;
+	$sql = 'SELECT Number.NumberID, Number, NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID where Number.CloneID = ' . $clone->CloneID . ' order by StashKey, NumberDescription' ;
 	$result = $db->query($sql);
 
 	echo("<table id = 'ttable'>");
@@ -243,9 +245,10 @@ echo "<input type='submit' value='DELETE the STASH'>";
 		echo "</tr>";
 	}
 	echo "</table>";
-o("</div>");
+echo("</div>");
 	echo("</div>"); //the outermost div
 ?>
 
 </body>
 </html>
+

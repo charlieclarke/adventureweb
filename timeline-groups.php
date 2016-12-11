@@ -48,11 +48,13 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$crudAction = $_GET['CRUD'];
 	
 	$local_secret = $ini_array['sharedSecret'];
+	$secret_local = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
 	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-groups.php";
+	$this_page = $base_url . "/timeline-groups.php";
 	
 	require_once('timeline-lib.php');
 
@@ -270,7 +272,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
         foreach($rowarray as $row)
         {
-		$rowstyle = ($row[id] % 2)==0?"d0":"d1";
+		$rowstyle = ($row['NumberID'] % 2)==0?"d0":"d1";
 		$currentDisplayNumber = $row['NumberID'];
 		
 		echo "<tr class='" .$rowstyle . "'>";
@@ -327,7 +329,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$rowarray = $result->fetchall(PDO::FETCH_ASSOC);
         foreach($rowarray as $row)
         {
-		$rowstyle = ($row[GroupID] % 2)==0?"d0":"d1";
+		$rowstyle = ($row['GroupID'] % 2)==0?"d0":"d1";
 		$currentDisplayGroup = $row['GroupID'];
 		
 		echo "<tr class='" .$rowstyle . "'>";
@@ -426,7 +428,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 
 
 
-	$sql = "SELECT NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID where Number.CloneID = $clone->CloneID order by StashKey, NumberDescription" ;
+	$sql = "SELECT Number.NumberID, NumberDescription, StashKey, StashValue from Stash join Number on Number.NumberID = Stash.NumberID where Number.CloneID = $clone->CloneID order by StashKey, NumberDescription" ;
 	$result = $db->query($sql);
 
 	echo("<table>");

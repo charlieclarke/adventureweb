@@ -49,11 +49,13 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$crudAction = $_GET['CRUD'];
 	
 	$local_secret = $ini_array['sharedSecret'];
+	$secret_local = $ini_array['sharedSecret'];
 	$db_location = $ini_array['databasepath'];
 	$base_url = $ini_array['phpServer'];
 	$instance_name = $ini_array['instanceName'];
 	
 	$this_url = $base_url . "/timeline-twilio.php";
+	$this_page = $base_url . "/timeline-twilio.php";
 	
  require_once('timeline-lib.php');
 

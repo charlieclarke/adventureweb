@@ -123,7 +123,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$_SESSION["FilterType"] = $filterType;
 	$_SESSION["FilterID"] = $filterID;
 	
-	echo "Filter type: $filterType Filter ID $filterID";
 
 	
 	#perform actions etc.

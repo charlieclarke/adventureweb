@@ -273,6 +273,8 @@
 
 
 			$cloneID = $this->db->lastInsertId();
+	
+		
 
 
 			$sql = "INSERT INTO CloneTwilio (CloneTwilioID, twilioAcountSID, twilioAuthToken) values (?,?,?)";
@@ -457,18 +459,7 @@
 			$qq->execute(array($isOutbound, $threadID, $numberID, $twilioID, $status, $inboundDetails,$raw));
 			#now get the calLTrackID
 
-			$sql = "SELECT max(TrackID) as TrackID from CallTrack where TrackNumberID = ?";
-
-			$q = $this->db->prepare($sql);
-                        $q->execute(array($numberID));
-
-                        $q->setFetchMode(PDO::FETCH_BOTH);
-
-                        $trackID = 0;
-                        // fetch
-                        while($r = $q->fetch()){
-                          $trackID = $r['TrackID'];
-                        }
+			$trackID = $this->db->lastInsertId();
 
                         return $trackID;
 
@@ -485,9 +476,6 @@
                         echo("<!-- insertToTImeLineOffset: sql is " . $sql . "-->");
                         $count = $this->db->exec($sql);
                         echo("<!-- sql done " . $count . "rows -->");
-
-
-
 
 
                 }

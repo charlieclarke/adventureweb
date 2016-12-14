@@ -33,41 +33,27 @@
 
 	$tdb = new DB($db_location);
 
-
-#        $db = new PDO('sqlite:'.$db_location);
-
 	$inboundMp3Action = 6;
 	$inboundTextAction = 5;
 	$inboundSMSAction = 9;
 	#see if we can find the number
-
-
-
 
 	$objClone = $tdb->getCloneByTwilioSID($twilioSID);
 	$objTwilioNumber=$tdb->getTwilioNumberByNumber($twilionumber,$objClone->CloneID);
 	$objInboundNumber=$tdb->getPhoneNumberByNumber($inboundnumber,$objClone->CloneID);
 
 	#get the DEFAULT thread
-	
-	#may 2015- moremoved default threads. if you dont get a match, we'll do nothing.
-
-	#$defaultThreadID = $tdb->getDefaultThreadID('SMS');
 	$defaultThreadID = 1;#this is now a placeholder for 'found match'
-
 
 	#see if there are any inbound threads associated with this number
 
-	#first - any with the group
+	#first - any with a named group - find match text, then match on blank.
 
-	#then - any on the null group which are NOT blank
+	#then - any on the null group which are NOT blank. and then on a null group 'blank' catch all.
 
-	#then - default
 
 	#only allow ONE match. as soon as one match is found, THAT is the threadID we work with. 
 	#only register ONCE in calltrak
-
-
 	
 
 	#get threads which match for this number
@@ -176,18 +162,7 @@
 
                 }
 
-
-
-
         }
-
-	#AND NOW DEFAULT
-	/*
-	if ($defaultThreadID > 0) {
-		$objMatchThread = $tdb->getThreadByThreadID($defaultThreadID);
-			$note="SMS default behaviour";
-	}
-	*/
 
 	#deal with children
 
@@ -200,7 +175,6 @@
 
 		$tdb->insertIntoCallTrack(0, $objMatchThread->ThreadID, $objInboundNumber->NumberID, '', "inbound $note ($objMatchThread->mp3Name): $smsMessageBody", '',$smsMessageBody);
 	}
-
 
 
 

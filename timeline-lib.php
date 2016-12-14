@@ -461,6 +461,9 @@
 
 			$trackID = $this->db->lastInsertId();
 
+
+			#this is better
+
                         return $trackID;
 
 

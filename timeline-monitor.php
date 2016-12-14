@@ -94,6 +94,9 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
     header("content-type: text/html");
 
 #figure out filters and stuff
+	$default_twilio_number=$_SESSION["CurrentTwilioNumberID"];;
+	$default_scene_id=$_SESSION["CurrentSceneID"];;
+	$default_group_id = $_SESSION["CurrentGroupID"]; 
 
 	$filterType = $_SESSION["FilterType"];
 	$filterID = intval($_SESSION["FilterID"]);
@@ -107,9 +110,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	if (preg_match("/SCENE(\d+)/",$setFilter,$matches)) {
 		$filterType="scene";
 		$filterID = $matches[1];
+		$default_scene_id = $filterID;
 	} elseif (preg_match("/TNUMBER(\d+)/",$setFilter,$matches)) {
                 $filterType="number";
                 $filterID = $matches[1];
+		$default_twilio_number=$filterID;
         } elseif (preg_match("/ALL/",$setFilter,$matches)) {
                 $filterType="all";
                 $filterID = 0;
@@ -118,6 +123,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	$_SESSION["FilterType"] = $filterType;
 	$_SESSION["FilterID"] = $filterID;
 	
+	echo "Filter type: $filterType Filter ID $filterID";
 
 	
 	#perform actions etc.
@@ -229,41 +235,11 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 			$st = $db->prepare($sql);
 			$st->execute(array($newThreadID,$newTNumberID,$newThreadDescription, $newActionID, $newThreadNumber, $newThreadFrequency, $newThreadMp3, $newChildThreadID,$newStartHour, $newStopHour, $newStartMinute, $newStopMinute,$newThreadSceneID));
 		} else {
-			#not a new thread - actualy making them active or inactive.
-
-			#we removed this code - and you now click Y/N to acive/deactive
-/*
-			$activeIDs = $_GET['active_grp'];
-			  if(empty($activeIDs))
-			  {
-			    echo("You didn't select any active ones.");
-			  } 
-			  else
-			  {
-			    $N = count($activeIDs);
-				$sep="";
-				$list = "(";
-				foreach($activeIDs as $aid){
-					if (preg_match("/active_(\d+)/",$aid,$matches) > 0) {
-					$list = $list . $sep . $matches[1];
-					$sep = ",";
-
-					}
-			 
-				}
-				$list = $list . ")";
-
-				echo("You selected $N ids: $list ");
-				$sql = "update Thread set Active = 1 where ID in " . $list;
-				$st = $db->prepare($sql);
-				$st->execute();
-				$sql = "update Thread set Active = 0 where ID not in " . $list;
-				$st = $db->prepare($sql);
-				$st->execute();
-			}
-*/
 
 		}
+		$default_twilio_number=$newTNumberID;
+		$default_scene_id=$newThreadSceneID;
+		$default_group_id = $newThreadNumber;
 
 	}
 	if ($crudAction == 'DELETETHREAD') {
@@ -562,7 +538,7 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 		$selected = "selected";
 	} else {
 		$selected = "";
-                }
+	}
 
 	echo "<select $selected name='NumberSceneFilterID'>\n\n";
 
@@ -636,9 +612,8 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 	
 	$default_thread_description='thread description';
 	$default_action_type=1;
-	$default_twilio_number=0;
-	$default_group_id = 0;
-	$default_scene_id = 0;
+	#$default_twilio_number=0;
+	#$default_scene_id = 0;
 	$default_mp3_name = 'mp3 name / text';
 	$default_frequency_minutes = 0;
 	$default_child_thread_id_1 = 0;
@@ -928,6 +903,11 @@ echo "<a href='$this_url?secret=$secret_local&GLOBAL=TRUNCATE'>Truncate History 
 
 	echo("</div>"); #end of the number mgmt div
 	echo("</div>"); #end of the container div 
+
+
+	$_SESSION["CurrentTwilioNumberID"] = $default_twilio_number;
+        $_SESSION["CurrentSceneID"]=$default_scene_id;
+        $_SESSION["CurrentGroupID"]=$default_group_id;
 ?>
 
 </body>

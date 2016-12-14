@@ -76,30 +76,14 @@
 
 	$todoxml = "";
 
-	#first for NON blank mp3 names
+	#first for NON blank mp3 names not in the null group
+	echo("<!-- working on inbound SMS message $smsMessageBody -->\n"); 
 	echo("<!-- doing nunmber match group NON BLANK bahvious -->"); 
 	foreach($objThreadsArray as $objThread) {
-		if (!empty($objThread->mp3Name)) {
-			echo("<!-- got threadID of $objThread->ThreadID -->"); 
-
-			$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
-
-			if ($ofInterest > 0) {
-				#then at least one thread matched, so we go forward
-				$defaultThreadID = 0;
-				$objMatchThread = $objThread;
-				$note = "SMS filter match";
-			}
-		}
-
-	}
-	#now do it again for blanks
-	
-	if ($defaultThreadID > 0) {
-		echo("<!-- doing nunmber match group BLANK bahvious -->"); 
-		foreach($objThreadsArray as $objThread) {
-			if (empty($objThread->mp3Name)) {
-				echo("<!-- got threadID of $objThread->ThreadID -->");
+		if ($defaultThreadID > 0 && $objThread->DestGroupID > 0) {
+			if (!empty($objThread->mp3Name)) {
+				
+				echo("<!-- looking at non blank matches - matching against threadID of $objThread->ThreadID -->"); 
 
 				$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
 
@@ -107,12 +91,35 @@
 					#then at least one thread matched, so we go forward
 					$defaultThreadID = 0;
 					$objMatchThread = $objThread;
-					$note = "SMS number match";
-					echo "<!--matched blank number group behaviour-->";
+					$note = "SMS filter match";
+					echo "<!--matched nonblank number group behaviour - -->";
 				}
-	
+			}
 			}
 
+	}
+	#now do it again for blanks not in the null group
+	
+	if ($defaultThreadID > 0) {
+		echo("<!-- doing nunmber match group BLANK bahvious -->"); 
+		foreach($objThreadsArray as $objThread) {
+			if ($defaultThreadID > 0) {
+				if (empty($objThread->mp3Name)) {
+					echo("<!-- looking at mpty matches got threadID of $objThread->ThreadID -->");
+
+					$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
+
+					if ($ofInterest > 0) {
+						#then at least one thread matched, so we go forward
+						$defaultThreadID = 0;
+						$objMatchThread = $objThread;
+						$note = "SMS blank number match";
+						echo "<!--matched blank number group behaviour-->";
+					}
+		
+				}
+
+			}
 		}
 	}
 		
@@ -133,7 +140,7 @@
 		foreach($objThreadsArray as $objThread) {
 			echo "<!--got thread-->\n";
                         if (!empty($objThread->mp3Name)) {
-				echo("<!--trying to match $smsMessageBody to $objThread->mp3Name-->\n");
+				echo("<!--trying to match $smsMessageBody to $objThread->mp3Name -->\n");
 
                                 $ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
         
@@ -146,10 +153,6 @@
                         }
 
                 }
-
-
-
-
         }
 
 	#and blank null group
@@ -257,7 +260,7 @@ function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwili
 		#this is a TODO...
 		if (empty($objThread->mp3Name)) {
 			$ofInterest=1;
-			echo "<!-- no filter so lets deal with children -->";
+			echo "<!-- matched because the filter is blanks.-->";
 		} else {
 			$posInString = strpos(strtolower(" $smsMessageBody"), strtolower("$objThread->mp3Name"));
 

@@ -109,7 +109,9 @@
 			$stmt = $this->db->prepare("select * from Scene where CloneID = ?");
 
                         $stmt->execute(array($cloneID));
-			while ($row = $stmt->fetch()) {
+			#while ($row = $stmt->fetch()) {
+			$rows = $stmt->fetchall();
+                                foreach($rows as $row) {
 
 				echo("<!--in get all scenes got sene" . $row['SceneID'] . "--!>");
                                 $scene = new Scene();
@@ -160,7 +162,10 @@
                         $stmt = $this->db->prepare("SELECT * FROM Clone, CloneTwilio where Clone.CloneID = CloneTwilio.CloneTwilioID and UserName = ? and Password = ?");
 
                         $stmt->execute(array($username, $password));
-                          while ($row = $stmt->fetch()) {
+                          #while ($row = $stmt->fetch()) {
+                          #while ($row = $stmt->fetchall()) {
+				$resp = $stmt->fetchall();
+				foreach($resp as $row) {
 
 
                                 $clone->CloneID = $row['CloneID'];
@@ -186,7 +191,9 @@
 			$stmt = $this->db->prepare("SELECT * FROM Clone, CloneTwilio where Clone.CloneID = CloneTwilio.CloneTwilioID and twilioAcountSID = ?");
 
 			$stmt->execute(array($twilioSID));
-			  while ($row = $stmt->fetch()) {
+			  #while ($row = $stmt->fetch()) {
+			$rows = $stmt->fetchall();
+			foreach($rows as $row) {
 
 
                                 $clone->CloneID = $row['CloneID'];
@@ -214,7 +221,9 @@
                         $stmt = $this->db->prepare("SELECT * FROM Clone, Scene, Thread where Clone.CloneID = Scene.CloneID and Thread.SceneID = Scene.SceneID and Thread.id = ? ");
 
                         $stmt->execute(array($threadID));
-                          while ($row = $stmt->fetch()) {
+                          #while ($row = $stmt->fetch()) {
+			$rows = $stmt->fetchall();
+			foreach($rows as $row) {
                                 echo("<!--got row - clone $clone->CloneID -->");
 
 
@@ -352,7 +361,9 @@
                         $q->setFetchMode(PDO::FETCH_BOTH);
 
                         // fetch
-                        while($row = $q->fetch()){
+                        #while($row = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $row) {
                                 $number = new TwilioNumber();
                                 $number->TwilioNumberID = $row['TNumberID'];
                                 $number->TwilioNumber = $row['TNumber'];
@@ -430,7 +441,9 @@
 			// fetch
 			$additional_number_id = 0;
 
-			while($r = $q->fetch()){
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 			  $additional_number_id = $r['NumberID'];
 			}
 
@@ -514,7 +527,9 @@
                         $q->setFetchMode(PDO::FETCH_BOTH);
 
                         $thread = new Thread();
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 
 
 
@@ -562,7 +577,9 @@
 			$q->setFetchMode(PDO::FETCH_BOTH);
 			
 			$threads = array();	
-			while($r = $q->fetch()){
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 
 				$thread = new Thread();
 			
@@ -609,7 +626,9 @@
                         $q->setFetchMode(PDO::FETCH_BOTH);
 
                         $threads = array();
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 
                                 $thread = new Thread();
 
@@ -659,7 +678,9 @@
 
 			$defaultThreadID = 0;
 			// fetch
-			while($r = $q->fetch()){
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 			  $defaultThreadID = $r['ThreadID'];
 			}
 
@@ -680,7 +701,9 @@
                         $numberID = 0;
                         $numberName='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $numberID = $r['TNumberID'];
                           $numberName = $r['TNumberName'];
 				$isActive = $r['IsActive'];
@@ -705,7 +728,9 @@
                                 $numberID = 0;
                                 $numberDescription='unknown';
                                 // fetch
-                                while($r = $q->fetch()){
+                                #while($r = $q->fetch()){
+				$rows = $q->fetchall();
+                                foreach($rows as $r) {
 					$numberID = $r['TNumberID'];
 					$numberName = $r['TNumberName'];
 					$isActive = $r['IsActive'];
@@ -735,7 +760,9 @@
 			$numberID = 0;
 			$numberDescription='unknown';
 			// fetch
-			while($r = $q->fetch()){
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 			  $numberID = $r['NumberID'];
 			  $numberDescription = $r['NumberDescription'];
 			}
@@ -758,7 +785,10 @@
 				$numberID = 0;
 				$numberDescription='unknown';
 				// fetch
-				while($r = $q->fetch()){
+				#while($r = $q->)fetch()){
+				#while($r = $q->fetchall()){
+				$rows = $q->fetchall();
+				foreach($rows as $r) {
 				  $numberID = $r['NumberID'];
 				  $numberDescription = $r['NumberDescription'];
 				}
@@ -789,7 +819,9 @@
                         $numberID = 0;
                         $numberDescription='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $numberID = $r['NumberID'];
                           $numberDescription = $r['NumberDescription'];
 				$number = $r['Number'];
@@ -823,7 +855,9 @@
                         $numberID = 0;
                         $numberDescription='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $numberID = $r['NumberID'];
                           $numberDescription = $r['NumberDescription'];
 				$number = $r['Number'];
@@ -858,7 +892,9 @@
                         $numberID = 0;
                         $numberDescription='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $numberID = $r['NumberID'];
                           $numberDescription = $r['NumberDescription'];
                                 $number = $r['Number'];
@@ -893,7 +929,9 @@
                         $numberID = 0;
                         $numberDescription='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $numberID = $r['NumberID'];
                           $numberDescription = $r['NumberDescription'];
                                 $number = $r['Number'];
@@ -954,7 +992,9 @@
                         $q->setFetchMode(PDO::FETCH_BOTH);
                         // fetch
 
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $guid = $r['GUID'];
                         }
 
@@ -976,7 +1016,9 @@
 			$numberID = 0;
 			$numberDescription='unknown';
 			// fetch
-			while($r = $q->fetch()){
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 			  $numberID = $r['NumberID'];
 			  $numberDescription = $r['NumberDescription'];
 			  $number = $r['Number'];
@@ -1006,7 +1048,9 @@
                         $numberDescription='unknown';
 			$number='';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
 			echo"<!-- get number by guid: in sql loop-->";
                           $numberID = $r['NumberID'];
                           $numberDescription = $r['NumberDescription'];
@@ -1036,7 +1080,9 @@
                         $groupID = 0;
                         $groupName='unknown';
                         // fetch
-                        while($r = $q->fetch()){
+                        #while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
                           $groupID = $r['GroupID'];
                           $groupName = $r['GroupName'];
                                 $objGroup = new NumberGroup;
@@ -1158,7 +1204,9 @@
 				$q->setFetchMode(PDO::FETCH_BOTH);
 
 				// fetch
-				while($r = $q->fetch()){
+				#while($r = $q->fetch()){
+				$rows = $q->fetchall();
+                                foreach($rows as $r) {
 				echo"<!--in sql loop-->";
 					$simID = $r['SIMID'];
 					$dstNumberID = $r['DstNumberID'];

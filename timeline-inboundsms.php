@@ -70,6 +70,7 @@
 			if (!empty($objThread->mp3Name)) {
 				
 				echo("<!-- looking at non blank matches - matching against threadID of $objThread->ThreadID -->"); 
+				echo("<!--trying to match $smsMessageBody to $objThread->mp3Name -->\n");
 
 				$ofInterest = deal_with_thread($objThread, $objInboundNumber,"inbound SMS: $smsMessageBody",$objTwilioNumber);
 
@@ -218,7 +219,7 @@ function deal_with_children($objThread, $objNumber) {
 
 
 function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwilioNumber) {
-	#echo "<!--dealing with threadID $threadID-->";
+	#echo "<!--dealing with threadID $threadID -->";
 	$dealWithChildren = 0;
 
 	global $tdb;
@@ -226,6 +227,7 @@ function deal_with_thread($objThread, $objInboundNumber,$calltracktext,$objTwili
 
 	$ofInterest=0;
 	$threadID = 0;
+	echo "<!-- dealing with thread. tnumber is $objTwilioNumber->TwilioNumberID | $objThread->TwilioNumberID action type $objThread->ActionTypeID $objThread->mp3Name -->\n";
 	if ($objThread->ActionTypeID == ActionType::$InboundSMSAction  && $objThread->TwilioNumberID == $objTwilioNumber->TwilioNumberID) {
 
 		echo"<!-- found matching inbound SMS action $objThread->ThreadID with mp3 $objThread->mp3Name on $objTwilioNumber->TwilioNumberName  -->";

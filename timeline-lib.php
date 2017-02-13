@@ -740,9 +740,9 @@
 		function getTwilioNumberByNumber($number,$cloneID) {
                         $objNumber = new TwilioNumber;
 
-                        $sql = "SELECT TNumberID, TNumberName,PrefixWL, IsActive  FROM TNumber  WHERE TNumber = ?";
+                        $sql = "SELECT TNumberID, TNumberName,PrefixWL, IsActive  FROM TNumber  WHERE TNumber = ? and cloneID = ?";
                         $q = $this->db->prepare($sql);
-                        $q->execute(array($number));
+                        $q->execute(array($number,$cloneID));
 
                         $q->setFetchMode(PDO::FETCH_BOTH);
 

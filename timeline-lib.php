@@ -564,6 +564,54 @@
 
 		}
 
+		function getThreadsByPhoneNumberIDAction($numberID,$actionTypeID) {
+			#returns an array of Thread objects for threads which can react to $numberID
+			#at the moment does NOT filter on time - this is a TODO
+			 $sql = "SELECT TNumber.PrefixWL,TNumber.TNumberID, TNumber.TNumber, Thread.id, Thread.ThreadDescription, Thread.mp3Name, Thread.DestNumber, Thread.ActionType,Thread.ChildThreadID, Thread.StartTimeHour, Thread.StartTimeMinute, Thread.StopTimeHour, Thread.StopTimeMinute, Thread.FrequencyMinutes from Thread, Groups, Number, GroupNumber, TNumber where Thread.DestNumber = Groups.GroupID and Groups.GroupID = GroupNumber.GNGroupID and Number.NumberID = GroupNumber.GNNumberID and Number.NumberID = ? and Thread.TNumberID = TNumber.TNumberID and Thread.Active=1 and Thread.ActionType = ?  order by Thread.FrequencyMinutes";
+
+			echo("<!--exec sql " . $sql . "-->");
+			$q = $this->db->prepare($sql);
+			$q->execute(array($numberID,$actionTypeID));
+
+			$q->setFetchMode(PDO::FETCH_BOTH);
+			
+			$threads = array();	
+			#while($r = $q->fetch()){
+			$rows = $q->fetchall();
+			foreach($rows as $r) {
+
+				$thread = new Thread();
+			
+				$thread->ThreadID = $r['id'];
+				$thread->ThreadDescription = $r['ThreadDescription'];
+				$thread->ActionTypeID = $r['ActionType'];
+				$thread->DestGroupID = $r['DestNumber'];
+				$thread->mp3Name = $r['mp3Name'];;
+				$thread->StartTimeHour = $r['StartTimeHour'];
+				$thread->StartTimeMinute = $r['StartTimeMinute'];
+				$thread->StopTimeHour = $r['StopTimeHour'];
+				$thread->StopTimeMinute = $r['StopTimeMinute'];
+				$thread->Frequency = $r['FrequencyMinutes'];
+				$thread->ChildThreadText = $r['ChildThreadID'];
+				$thread->TwilioNumberID = $r['TNumberID'];
+				$thread->TwilioNumber = $r['TNumber'];
+                                $thread->TNumberPrefixWL = $r['PrefixWL'];
+				$thread->ChildThreads = array();
+
+				#deal with children
+				$childIDs = explode(',',$thread->ChildThreadText);
+				foreach($childIDs as $childID) {
+
+					$thread->ChildThreads[] = intval($childID);
+
+				}
+
+				$threads[] = $thread;
+			}
+
+			return $threads;
+		}
+
 		function getThreadsByPhoneNumberID($numberID) {
 			#returns an array of Thread objects for threads which can react to $numberID
 			#at the moment does NOT filter on time - this is a TODO
@@ -712,6 +760,7 @@
 
                         #if we dont know the number - add it.
                         if ($numberID == 0) {
+				error_log("we have an unknown twilio number $number with clone $cloneID");
 
                                 $sql = "INSERT into TNumber (TNumber, TNumberName, IsActive, PrefixWL,CloneID) values(?,?,1,'',?)";
                                 $q = $this->db->prepare($sql);
